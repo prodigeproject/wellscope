@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from tests.support.documents import make_document
-from wellscope.domain.documents import ReportDocument, Table
+from wellscope.domain.documents import FieldValue, ReportDocument, Table
 from wellscope.domain.glossary import GlossaryEntry, GlossaryStatus
 from wellscope.domain.rendering import (
     catalog_summary,
@@ -124,3 +124,31 @@ def test_glossary_passage_without_expansion_gives_the_description() -> None:
         id="gl-bb", term="BB", aliases=("BB",), description="Field name.", source_row=2
     )
     assert glossary_passage(entry).body == "BB: Field name."
+
+
+def _with_mud_and_safety(document: ReportDocument) -> ReportDocument:
+    fields = {
+        **document.fields,
+        "drill_type": FieldValue(label="Drill type", section="safety", raw="Man Overboard", page=3),
+        "mud_weight": FieldValue(label="MW ppg", section="progress", raw="9.9 SBM", page=1),
+    }
+    mud = Table(
+        section="mud_check", page=2, rows=[["Type", "SBM", ""], ["Density (ppg)", "9.80", ""]]
+    )
+    return document.model_copy(update={"fields": fields, "tables": [mud]})
+
+
+def test_abbreviated_labels_carry_their_everyday_name() -> None:
+    grouped = passages_by_kind(_with_mud_and_safety(make_document()))
+    facts = "\n".join(grouped["facts"])
+    assert "- Drill type (safety drill conducted): Man Overboard" in facts
+    assert "- MW ppg (mud weight): 9.9 SBM" in facts
+    assert "| Density (ppg) (mud weight) | 9.80 |   |" in grouped["table"][0]
+
+
+def test_catalog_summary_takes_the_mud_weight_from_the_mud_check_table() -> None:
+    document = _with_mud_and_safety(make_document())
+    document = document.model_copy(
+        update={"fields": {k: v for k, v in document.fields.items() if k != "mud_weight"}}
+    )
+    assert catalog_summary(document) == "Daily Cost: 250,000.00; Mud weight (density, ppg): 9.80"

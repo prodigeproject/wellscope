@@ -74,3 +74,18 @@ def test_ingest_reports_a_missing_data_folder_and_exits_with_an_error(
     result = runner.invoke(app, ["ingest"])
     assert result.exit_code == 1
     assert "does not exist" in result.output
+
+
+def test_serve_ignores_forwarded_client_addresses(
+    offline: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Trusting X-Forwarded-For from a local client would let any caller pick its own
+    # rate-limit key.
+    import uvicorn  # noqa: PLC0415 - patched only for this test
+
+    calls: list[dict[str, object]] = []
+    monkeypatch.setattr(uvicorn, "run", lambda app, **options: calls.append(options))
+    result = runner.invoke(app, ["serve"])
+    assert result.exit_code == 0, result.output
+    assert calls[0]["proxy_headers"] is False
+    assert calls[0]["host"] == "127.0.0.1"

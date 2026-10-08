@@ -88,6 +88,13 @@ The two failures of the final run passed in earlier runs: one answer named only 
 operations reported for the same day (missing a drill), and one trend answer skipped the mud
 weight of one report. Neither was a wrong figure: the verifier passed every figure shown.
 
+**After the final run.** Both failures were traced to a cause and fixed (R13 and R14 in
+[RESOLUTION.md](RESOLUTION.md#4-independent-review)): the analyzer had reworded "what drill" as
+"what drilling", and a DDR records mud weight under a label the question did not use. To stay
+within the API budget the full set was not re-run; instead the two items and a follow-up item
+were run three times each (9/9), and ten other items most exposed to the analyzer change
+(cross-report, Indonesian dates, relative periods) once (10/10).
+
 Language models are not deterministic even at temperature 0: across runs on intermediate
 versions, the same pipeline scored within about two questions of each other. The remaining
 risk is concentrated in questions that aggregate across several reports.

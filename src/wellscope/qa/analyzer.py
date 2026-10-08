@@ -136,11 +136,18 @@ class Analyzer:
         except ValidationError:
             logger.warning("analyzer reply did not match the schema; using rules")
             return _by_rules(question, references)
-        return _merge(question, reply, references, result)
+        return _merge(question, reply, references, result, follow_up=bool(history))
 
 
-def _merge(question: str, reply: _Reply, references: References, result: ChatResult) -> Analysis:
-    """Model for scope, intent and rewriting; the question's own numbers and dates win."""
+def _merge(
+    question: str, reply: _Reply, references: References, result: ChatResult, *, follow_up: bool
+) -> Analysis:
+    """Model for scope, intent and rewriting; the question's own numbers and dates win.
+
+    Only a follow-up is rewritten: a question that stands on its own keeps its exact words,
+    since a rewrite can change the meaning ("what drill" read as "what drilling").
+    """
+    rewritten = reply.standalone_question.strip() if follow_up else ""
     filters = DocumentFilter(
         doc_types=references.doc_types or tuple(reply.doc_types),
         report_numbers=references.report_numbers or tuple(reply.report_numbers),
@@ -153,7 +160,7 @@ def _merge(question: str, reply: _Reply, references: References, result: ChatRes
         language=reply.language,
         scope=reply.scope,
         intent=reply.intent,
-        standalone_question=reply.standalone_question.strip() or question,
+        standalone_question=rewritten or question,
         glossary_terms=tuple(reply.glossary_terms),
         filters=filters,
         search_queries=tuple(reply.search_queries_en),
@@ -187,7 +194,8 @@ def _by_rules(question: str, references: References) -> Analysis:
 def _user_message(question: str, history: Sequence[Turn], catalog: Sequence[CatalogEntry]) -> str:
     lines = ["Report catalog:"]
     lines += [
-        f"- {entry.label}, covers {entry.period or 'an unstated period'}" for entry in catalog
+        f"- {_escape(entry.label)}, covers {entry.period or 'an unstated period'}"
+        for entry in catalog
     ] or ["- (no reports)"]
     if history:
         lines += ["", "Conversation so far (oldest first):"]
