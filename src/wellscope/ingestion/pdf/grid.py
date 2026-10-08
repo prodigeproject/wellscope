@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Sequence
 from dataclasses import dataclass
+from functools import partial
 
 from wellscope.ingestion.pdf.geometry import Box, Word, cluster_lines, words_in
+from wellscope.ingestion.pdf.headers import Header, table_header
 from wellscope.ingestion.pdf.kv import TextLine
 from wellscope.ingestion.pdf.layout import PageLayout
 from wellscope.ingestion.pdf.templates import GridSpec, SectionSpec
@@ -15,18 +16,6 @@ ROW_TOLERANCE = 2.0
 EDGE_TOLERANCE = 2.0
 GAP_SPLIT = 40.0
 MIN_TABLE_CELLS = 2
-DATA_SHARE = 0.5
-_NUMERIC = re.compile(r"[-+]?\d[\d.,/-]*")
-# "Total No. of People: 140" is a caption above the header, not a column name.
-_CAPTION = re.compile(r":\s*\S")
-
-
-@dataclass(frozen=True, slots=True)
-class Header:
-    """How many leading rows of a table are headers, and one full name per column."""
-
-    rows: int
-    columns: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,88 +47,13 @@ class Section:
         return [row for row in rows if any(row)]
 
     def header(self) -> Header:
-        """Header rows and the full name of every column.
-
-        Up to the template's number of header rows are read, stopping at the first row that
-        looks like data (as many cells as the widest row, mostly numbers). A column's name joins
-        the texts of the header cells above it, top to bottom.
-        """
-        rows = [row for row in self._cell_rows() if any(self._texts(row))]
-        if self.spec.split_lines or not rows:
+        """Header rows and the full name of every column (see ``headers.table_header``)."""
+        if self.spec.split_lines:
             return Header(0, ())
-        widest = max(rows, key=len)
-        header: list[list[Box]] = []
-        for row in rows[: self.spec.header_rows]:
-            if len(row) == len(widest) and _numeric_share(self._texts(row)) >= DATA_SHARE:
-                break
-            header.append(row)
-        if not header:
-            return Header(0, ())
-        names = [self._column_name(header, column) for column in _leaf_columns(rows)]
-        return Header(len(header), _number_repeats(names))
+        return table_header(self._cell_rows(), self.spec.header_rows, partial(cell_text, self.page))
 
     def _cell_rows(self) -> list[list[Box]]:
         return _group_rows([cell for cell in self.page.cells if _centre_in(cell, self.region)])
-
-    def _texts(self, row: Sequence[Box]) -> list[str]:
-        return [cell_text(self.page, cell) for cell in row]
-
-    def _column_name(self, header: Sequence[Sequence[Box]], column: Box) -> str:
-        centre = (column.x0 + column.x1) / 2
-        parts: list[str] = []
-        for row in header:
-            cell = next(
-                (c for c in row if c.x0 - EDGE_TOLERANCE <= centre <= c.x1 + EDGE_TOLERANCE), None
-            )
-            text = cell_text(self.page, cell) if cell is not None else ""
-            if text and not _CAPTION.search(text) and (not parts or parts[-1] != text):
-                parts.append(text)
-        return " ".join(parts)
-
-
-def _leaf_columns(rows: Sequence[Sequence[Box]]) -> list[Box]:
-    """One cell per column: cells with no narrower cell under or over them, left to right.
-
-    A header cell over sub-columns (``Prognosis Depth`` over ``m MDDF``/``m TVDSS``) is not a
-    column itself; a header cell spanning both header rows (``Lithology``) is, even when the
-    table has no data row.
-    """
-    cells = [cell for row in rows for cell in row]
-    leaves: list[Box] = []
-    for cell in cells:
-        width = cell.x1 - cell.x0
-        has_narrower = any(
-            other.x1 - other.x0 < width - EDGE_TOLERANCE
-            and cell.x0 <= (other.x0 + other.x1) / 2 <= cell.x1
-            for other in cells
-        )
-        known = any(
-            abs(cell.x0 - leaf.x0) <= EDGE_TOLERANCE and abs(cell.x1 - leaf.x1) <= EDGE_TOLERANCE
-            for leaf in leaves
-        )
-        if not has_narrower and not known:
-            leaves.append(cell)
-    return sorted(leaves, key=lambda cell: cell.x0)
-
-
-def _numeric_share(texts: Sequence[str]) -> float:
-    filled = [text for text in texts if text]
-    numeric = sum(1 for text in filled if _NUMERIC.fullmatch(text))
-    return numeric / len(filled) if filled else 0.0
-
-
-def _number_repeats(names: Sequence[str]) -> tuple[str, ...]:
-    """Columns under one spanning header become ``Interval [1/2]`` and ``Interval [2/2]``."""
-    totals = {name: names.count(name) for name in names}
-    seen: dict[str, int] = {}
-    numbered = []
-    for name in names:
-        if name and totals[name] > 1:
-            seen[name] = seen.get(name, 0) + 1
-            numbered.append(f"{name} [{seen[name]}/{totals[name]}]")
-        else:
-            numbered.append(name)
-    return tuple(numbered)
 
 
 def cell_text(page: PageLayout, cell: Box) -> str:
