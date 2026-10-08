@@ -5,12 +5,14 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from wellscope.ingestion.pdf.geometry import Box, cluster_lines, words_in
+from wellscope.ingestion.pdf.geometry import Box, Word, cluster_lines, words_in
+from wellscope.ingestion.pdf.kv import TextLine
 from wellscope.ingestion.pdf.layout import PageLayout
 from wellscope.ingestion.pdf.templates import GridSpec, SectionSpec
 
 ROW_TOLERANCE = 2.0
 EDGE_TOLERANCE = 2.0
+GAP_SPLIT = 40.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,7 +47,7 @@ class Section:
 
 def cell_text(page: PageLayout, cell: Box) -> str:
     """Text of one cell with its visual lines joined by spaces."""
-    return " ".join(line.text for line in page.lines(cell))
+    return " ".join(line.text for line in page.cell_lines(cell))
 
 
 def find_sections(pages: Sequence[PageLayout], specs: Sequence[SectionSpec]) -> list[Section]:
@@ -61,25 +63,63 @@ def find_sections(pages: Sequence[PageLayout], specs: Sequence[SectionSpec]) -> 
     return found
 
 
-def text_blocks(page: PageLayout, regions: Sequence[Box]) -> list[list[str]]:
+def text_blocks(page: PageLayout, merged_regions: Sequence[Box]) -> list[list[TextLine]]:
     """Line groups for key-value extraction, in reading order.
 
-    Key-value section regions form one block each; other cells form one block per cell, so a
-    value never continues into a neighbouring cell; words outside cells form one block per line.
+    Every cell is its own block, so a value never continues into a neighbouring cell. A merged
+    region (a section whose labels and values sit in different cells) forms a single block.
+    Words outside cells form one block per line. Lines are split at wide gaps so a title
+    printed beside a label is not read as part of its value.
     """
-    blocks: list[tuple[float, float, list[str]]] = []
-    for region in regions:
-        blocks.append((region.top, region.x0, [line.text for line in page.lines(region)]))
-    for cell in page.cells:
-        if not any(_centre_in(cell, region) for region in regions):
-            blocks.append((cell.top, cell.x0, [line.text for line in page.lines(cell)]))
+    blocks: list[tuple[float, float, list[TextLine]]] = []
+    for region in merged_regions:
+        words = [
+            word
+            for cell, owned in page.cell_words.items()
+            if _centre_in(cell, region)
+            for word in owned
+        ]
+        words += [
+            word for word in page.loose_words if region.contains(word.center_x, word.center_y)
+        ]
+        blocks.append((region.top, region.x0, _fragments(words)))
+    for cell, owned in page.cell_words.items():
+        if not any(_centre_in(cell, region) for region in merged_regions):
+            blocks.append((cell.top, cell.x0, _fragments(owned)))
     loose = [
         word
-        for word in page.words
-        if not any(box.contains(word.center_x, word.center_y) for box in (*page.cells, *regions))
+        for word in page.loose_words
+        if not any(region.contains(word.center_x, word.center_y) for region in merged_regions)
     ]
-    blocks.extend((line.top, line.words[0].x0, [line.text]) for line in cluster_lines(loose))
+    blocks.extend(
+        (line.top, line.words[0].x0, _fragments(line.words)) for line in cluster_lines(loose)
+    )
     return [lines for _, _, lines in sorted(blocks, key=lambda block: block[:2]) if lines]
+
+
+def _fragments(words: Sequence[Word]) -> list[TextLine]:
+    fragments: list[TextLine] = []
+    for line in cluster_lines(words):
+        piece: list[Word] = []
+        for word in line.words:
+            if piece and _breaks(piece[-1], word):
+                fragments.append(_text_line(piece))
+                piece = []
+            piece.append(word)
+        fragments.append(_text_line(piece))
+    return fragments
+
+
+def _breaks(previous: Word, word: Word) -> bool:
+    """A wide gap separates two texts, unless it is the gap between a label and its colon or
+    between a colon and its (right-aligned) value."""
+    if previous.text.endswith(":") or word.text.startswith(":"):
+        return False
+    return word.x0 - previous.x1 > GAP_SPLIT
+
+
+def _text_line(words: Sequence[Word]) -> TextLine:
+    return TextLine.from_words((word.text, word.x0, word.x1) for word in words)
 
 
 def read_grid(page: PageLayout, spec: GridSpec) -> list[list[str]]:
@@ -110,7 +150,29 @@ def _region(page: PageLayout, title: Box, spec: SectionSpec, boundaries: Sequenc
         for other in boundaries
         if other.top >= title.bottom - EDGE_TOLERANCE and other.x0 < right and other.x1 > left
     ]
-    return Box(left, title.bottom, right, min(below, default=page.height))
+    bottom = min(below, default=page.height)
+    if spec.merge_cells:
+        bottom = min(bottom, _full_width_bottom(page, title.bottom, left, right))
+    return Box(left, title.bottom, right, bottom)
+
+
+def _full_width_bottom(page: PageLayout, top: float, left: float, right: float) -> float:
+    """Bottom of the stack of full-width cells directly below ``top``."""
+    bottom = top
+    while True:
+        below = next(
+            (
+                cell
+                for cell in page.cells
+                if abs(cell.top - bottom) <= EDGE_TOLERANCE
+                and abs(cell.x0 - left) <= EDGE_TOLERANCE
+                and abs(cell.x1 - right) <= EDGE_TOLERANCE
+            ),
+            None,
+        )
+        if below is None:
+            return bottom
+        bottom = below.bottom
 
 
 def _centre_in(cell: Box, region: Box) -> bool:
@@ -133,7 +195,7 @@ def _line_rows(page: PageLayout, row: Sequence[Box]) -> list[list[str]]:
     Used where rows have no ruling between them; a line whose first cell is empty continues the
     previous row (wrapped values such as ``Synthetic Based`` / ``Mud (SBM)``).
     """
-    cell_lines = [page.lines(cell) for cell in row]
+    cell_lines = [page.cell_lines(cell) for cell in row]
     tops: list[float] = []
     for top in sorted(line.top for lines in cell_lines for line in lines):
         if not tops or top - tops[-1] > ROW_TOLERANCE:

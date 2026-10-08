@@ -89,6 +89,6 @@ def test_read_grid_is_empty_when_the_header_is_absent(form: PageLayout) -> None:
 
 
 def test_text_blocks_keep_each_cell_separate(form: PageLayout) -> None:
-    blocks = text_blocks(form, regions=[])
+    blocks = [[line.text for line in block] for block in text_blocks(form, merged_regions=[])]
     assert ["Current status : Drilling ahead", "24 hr summary : Drilled to TD."] in blocks
     assert ["Phase"] in blocks

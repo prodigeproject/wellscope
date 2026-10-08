@@ -52,8 +52,11 @@ fields:
   rig_contractor: {section: rig, labels: ["RIG CONTRACTOR"]}
   dfe_amsl: {section: rig, kind: quantity, labels: ["DFE (AMSL)"]}
 
+# Sub-titles printed inside blocks; they end the value above them.
+stop_lines: ["WELL DATA", "LOCATION DATA", "RIG INFORMATION", "DAILY GEOLOGICAL OPERATIONS SUMMARY"]
+
 sections:
-  - {name: operation_update, kind: kv, titles: ["OPERATION UPDATE (0600 - 0600 HRS)"]}
+  - {name: operation_update, kind: kv, merge_cells: true, titles: ["OPERATION UPDATE (0600 - 0600 HRS)"]}
   - {name: remarks, split_lines: true, kind: remarks, full_row: true, titles: ["REMARKS"]}
   - {name: casing_shoe, header_rows: 2, titles: ["CASING AND SHOE DEPTH"]}
   - {name: formation_tops, header_rows: 3, titles: ["FORMATION TOPS"]}

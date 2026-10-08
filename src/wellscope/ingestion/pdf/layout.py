@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from bisect import bisect_left
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -25,7 +25,6 @@ RUN_MAX_KERNING = 0.5
 SAME_BASELINE = 1.0
 VERTICAL_SLACK = 0.5
 MIN_RULE_LENGTH = 2.0
-BORDER_TOLERANCE = 1.5
 TABLE_SETTINGS = {"vertical_strategy": "lines", "horizontal_strategy": "lines"}
 
 
@@ -41,10 +40,16 @@ class PageLayout:
     vertical_rules: tuple[Rule, ...]
     horizontal_rules: tuple[Rule, ...]
     visibility: VisibilityStats
+    cell_words: dict[Box, tuple[Word, ...]]
+    loose_words: tuple[Word, ...]
 
     def lines(self, box: Box | None = None) -> list[Line]:
         """Visual lines of the page, or of the words centred inside ``box``."""
         return cluster_lines(self.words if box is None else words_in(self.words, box))
+
+    def cell_lines(self, cell: Box) -> list[Line]:
+        """Visual lines of the words owned by ``cell`` (its smallest enclosing cell)."""
+        return cluster_lines(self.cell_words.get(cell, ()))
 
     def text(self, box: Box | None = None) -> str:
         """Visible text of the page (or of ``box``), one visual line per text line."""
@@ -64,8 +69,7 @@ def _page_layout(number: int, page: Page) -> PageLayout:
     visible, stats = visible_page(page)
     cells = {Box(*cell) for table in visible.find_tables(TABLE_SETTINGS) for cell in table.cells}
     border_lines = [_rule(line) for line in page.lines if _is_vertical(line)]
-    inner_borders = _inner_borders(border_lines, cells)
-    overflow = _overflow_char_ids(visible.chars, inner_borders)
+    overflow = _overflow_char_ids(visible.chars, border_lines)
     visible = visible.filter(lambda obj: id(obj) not in overflow).dedupe_chars(
         tolerance=DEDUPE_TOLERANCE
     )
@@ -73,38 +77,45 @@ def _page_layout(number: int, page: Page) -> PageLayout:
         x_tolerance=WORD_X_TOLERANCE, y_tolerance=WORD_Y_TOLERANCE, return_chars=True
     )
     edges = [edge for edge in page.edges if _length(edge) >= MIN_RULE_LENGTH]
+    split_words = tuple(part for word in words for part in _split_at_borders(word, border_lines))
+    cell_words, loose_words = _assign_words(split_words, cells)
     return PageLayout(
         number=number,
         width=float(page.width),
         height=float(page.height),
-        words=tuple(part for word in words for part in _split_at_borders(word, inner_borders)),
+        words=split_words,
         cells=tuple(sorted(cells, key=lambda box: (box.top, box.x0))),
         vertical_rules=tuple(_rule(edge) for edge in edges if edge["orientation"] == "v"),
         horizontal_rules=tuple(_rule(edge) for edge in edges if edge["orientation"] == "h"),
         visibility=stats,
+        cell_words=cell_words,
+        loose_words=loose_words,
     )
 
 
-def _inner_borders(lines: Sequence[Rule], cells: set[Box]) -> list[Rule]:
-    """Border segments with a neighbouring cell on their right; text is clipped only there.
+def _assign_words(
+    words: Sequence[Word], cells: set[Box]
+) -> tuple[dict[Box, tuple[Word, ...]], tuple[Word, ...]]:
+    """Give each word to the smallest cell containing its centre (tables may nest or overlap)."""
+    owned: dict[Box, list[Word]] = {}
+    loose: list[Word] = []
+    for word in words:
+        containing = [cell for cell in cells if cell.contains(word.center_x, word.center_y)]
+        if containing:
+            owner = min(containing, key=lambda cell: (cell.x1 - cell.x0) * (cell.bottom - cell.top))
+            owned.setdefault(owner, []).append(word)
+        else:
+            loose.append(word)
+    return {cell: tuple(items) for cell, items in owned.items()}, tuple(loose)
 
-    An outer table frame has no cell beyond it, and reports let text run past it unclipped.
-    """
-    return [
-        Rule(line.x0, line.x1, max(line.top, cell.top), min(line.bottom, cell.bottom))
-        for line in lines
-        for cell in cells
-        if abs(cell.x0 - line.x0) <= BORDER_TOLERANCE
-        and cell.top < line.bottom
-        and cell.bottom > line.top
-    ]
 
+def _overflow_char_ids(chars: Sequence[dict[str, Any]], borders: Sequence[Rule]) -> set[int]:
+    """Characters of a text run that spill past a cell border into a neighbour's text.
 
-def _overflow_char_ids(chars: Iterable[dict[str, Any]], borders: Sequence[Rule]) -> set[int]:
-    """Characters of a text run that spill past the first cell border to the run's right.
-
-    Reports clip cell content at the border, so the spilled glyphs are invisible on the page,
-    yet extractors read them and glue them to the next cell's value (``…REAMER1``).
+    Reports clip cell content at inner borders, so the spilled glyphs are invisible on the page,
+    yet extractors read them and glue them to the next cell's value (``…REAMER1``). A border
+    only clips when other text sits beyond it on the same baseline; text running past an outer
+    frame stays visible and is kept.
     """
     dropped: set[int] = set()
     run: list[dict[str, Any]] = []
@@ -113,7 +124,7 @@ def _overflow_char_ids(chars: Iterable[dict[str, Any]], borders: Sequence[Rule])
             run.append(char)
             continue
         if run:
-            dropped.update(_clipped(run, borders))
+            dropped.update(_clipped(run, borders, chars))
         run = [char] if char is not None else []
     return dropped
 
@@ -125,18 +136,27 @@ def _continues(previous: dict[str, Any], char: dict[str, Any]) -> bool:
     )
 
 
-def _clipped(run: Sequence[dict[str, Any]], borders: Sequence[Rule]) -> set[int]:
+def _clipped(
+    run: Sequence[dict[str, Any]], borders: Sequence[Rule], chars: Sequence[dict[str, Any]]
+) -> set[int]:
     start = _centre_x(run[0])
-    middle = (float(run[0]["top"]) + float(run[0]["bottom"])) / 2
-    limits = [
+    top = float(run[0]["top"])
+    middle = (top + float(run[0]["bottom"])) / 2
+    members = {id(char) for char in run}
+    neighbours = [
+        float(char["x0"])
+        for char in chars
+        if id(char) not in members and abs(float(char["top"]) - top) <= SAME_BASELINE
+    ]
+    limits = sorted(
         rule.x0
         for rule in borders
         if rule.x0 > start and rule.top - VERTICAL_SLACK <= middle <= rule.bottom + VERTICAL_SLACK
-    ]
-    if not limits:
-        return set()
-    limit = min(limits)
-    return {id(char) for char in run if _centre_x(char) > limit}
+    )
+    for limit in limits:
+        if any(x >= limit - VERTICAL_SLACK for x in neighbours):
+            return {id(char) for char in run if _centre_x(char) > limit}
+    return set()
 
 
 def _split_at_borders(word: dict[str, Any], borders: Sequence[Rule]) -> list[Word]:
@@ -149,12 +169,22 @@ def _split_at_borders(word: dict[str, Any], borders: Sequence[Rule]) -> list[Wor
         and rule.top - VERTICAL_SLACK <= middle <= rule.bottom + VERTICAL_SLACK
     )
     chars = word.get("chars") or []
+    cuts = [cut for cut in cuts if _separates(chars, cut)]
     if not cuts or not chars:
         return [_word(word)]
     groups: list[list[dict[str, Any]]] = [[] for _ in range(len(cuts) + 1)]
     for char in chars:
         groups[bisect_left(cuts, _centre_x(char))].append(char)
     return [_word(_merge_chars(group)) for group in groups if group]
+
+
+def _separates(chars: Sequence[dict[str, Any]], cut: float) -> bool:
+    """Whether the glyphs on each side of ``cut`` belong to different strings (do not touch)."""
+    left = [char for char in chars if _centre_x(char) <= cut]
+    right = [char for char in chars if _centre_x(char) > cut]
+    if not left or not right:
+        return False
+    return float(right[0]["x0"]) - float(left[-1]["x1"]) > RUN_MAX_GAP
 
 
 def _merge_chars(chars: Sequence[dict[str, Any]]) -> dict[str, Any]:

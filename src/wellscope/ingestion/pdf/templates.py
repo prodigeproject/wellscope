@@ -21,6 +21,7 @@ SectionKind = Literal["kv", "table", "operations", "remarks"]
 TEMPLATE_PACKAGE = "wellscope.ingestion.pdf"
 TEMPLATE_FILES = ("ddr.yaml", "dgos.yaml")
 PREFIX_MARK = "*"
+STOP_KEY = "__stop__"
 
 
 class _Spec(BaseModel):
@@ -40,7 +41,9 @@ class SectionSpec(_Spec):
     """A titled region of the form; ``titles`` ending in ``*`` match by prefix.
 
     Titles match case-sensitively so a column header such as ``Remarks`` is not mistaken for
-    the ``REMARKS`` section. ``split_lines`` reads rows that have no ruling between them.
+    the ``REMARKS`` section. ``split_lines`` reads rows that have no ruling between them;
+    ``merge_cells`` reads a key-value section as one block when labels and values sit in
+    different cells.
     """
 
     name: str
@@ -49,6 +52,7 @@ class SectionSpec(_Spec):
     header_rows: int = 0
     full_row: bool = False
     split_lines: bool = False
+    merge_cells: bool = False
 
     def matches(self, title: str) -> bool:
         """Whether a cell's single line of text is one of this section's titles."""
@@ -100,6 +104,7 @@ class FormTemplate(_Spec):
     sections: tuple[SectionSpec, ...] = ()
     grids: tuple[GridSpec, ...] = ()
     operations: OperationsSpec | None = None
+    stop_lines: tuple[str, ...] = ()
 
     @model_validator(mode="after")
     def _references_exist(self) -> Self:
@@ -110,12 +115,15 @@ class FormTemplate(_Spec):
         return self
 
     def label_specs(self, *, heading: bool) -> tuple[LabelSpec, ...]:
-        """Key-value label specs for colon labels, or for heading labels."""
-        return tuple(
+        """Key-value label specs for colon labels, or for heading labels (incl. stop lines)."""
+        specs = tuple(
             LabelSpec(key, spec.labels)
             for key, spec in self.fields.items()
             if spec.heading is heading
         )
+        if heading and self.stop_lines:
+            specs += (LabelSpec(STOP_KEY, self.stop_lines),)
+        return specs
 
 
 @lru_cache(maxsize=1)
