@@ -1,15 +1,18 @@
 """OpenAI adapters: structured chat through the Responses API, and embeddings.
 
 Requests use ``store=False`` so prompts and documents are not retained by the provider. Some
-models reject ``temperature`` or ``reasoning``; the adapter drops a rejected parameter once and
-remembers it for that model, so any chat model configured by a reviewer works unchanged.
+models reject ``temperature`` or ``reasoning``; when one does, the adapter lowers the reasoning
+effort to ``low`` or drops the parameter, retries, and remembers the change for later calls
+(safely across threads), so any chat model configured by a reviewer works unchanged. Every
+provider failure surfaces as a ``ModelError`` with a stable code.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Sequence
+import threading
+from collections.abc import Mapping, Sequence
 from time import perf_counter
 from typing import Any
 
@@ -21,7 +24,9 @@ from wellscope.llm.ports import ChatRequest, ChatResult
 logger = logging.getLogger(__name__)
 EMBEDDING_BATCH = 64
 MILLISECONDS = 1000
-OPTIONAL_PARAMETERS = ("temperature", "reasoning")
+FALLBACK_EFFORT = "low"
+# Each optional parameter may be relaxed twice (effort lowered, then dropped), plus the success.
+MAX_ATTEMPTS = 5
 
 
 class OpenAIChatModel:
@@ -32,6 +37,7 @@ class OpenAIChatModel:
     ) -> None:
         self._client = client
         self._model = model
+        self._lock = threading.Lock()
         self._optional: dict[str, Any] = {"temperature": 0}
         if reasoning_effort:
             self._optional["reasoning"] = {"effort": reasoning_effort}
@@ -42,19 +48,9 @@ class OpenAIChatModel:
         return self._model
 
     def complete(self, request: ChatRequest) -> ChatResult:
-        """Send ``request``; retries once without a parameter the model rejects."""
+        """Send ``request``, relaxing optional parameters the model rejects."""
         started = perf_counter()
-        try:
-            response = self._create(request)
-        except openai.BadRequestError as error:
-            rejected = next((name for name in self._optional if name in str(error)), None)
-            if rejected is None:
-                raise _model_error(error) from error
-            logger.info("model %s rejected %s; retrying without it", self._model, rejected)
-            self._optional.pop(rejected)
-            response = self._create(request)
-        except openai.OpenAIError as error:
-            raise _model_error(error) from error
+        response = self._create(request)
         try:
             content = json.loads(response.output_text)
         except (json.JSONDecodeError, TypeError) as error:
@@ -69,29 +65,51 @@ class OpenAIChatModel:
         )
 
     def _create(self, request: ChatRequest) -> Any:
-        try:
-            return self._client.responses.create(
-                model=self._model,
-                store=False,
-                input=[
-                    {"role": "system", "content": request.system},
-                    {"role": "user", "content": request.user},
-                ],
-                text={
-                    "format": {
-                        "type": "json_schema",
-                        "name": request.schema_name,
-                        "schema": request.schema,
-                        "strict": True,
-                    }
-                },
-                max_output_tokens=request.max_output_tokens,
-                **self._optional,
-            )
-        except openai.BadRequestError:
-            raise
-        except openai.OpenAIError as error:
-            raise _model_error(error) from error
+        for _ in range(MAX_ATTEMPTS):
+            with self._lock:
+                optional = dict(self._optional)
+            try:
+                return self._send(request, optional)
+            except openai.BadRequestError as error:
+                if not self._relax(str(error), optional):
+                    raise _model_error(error) from error
+            except openai.OpenAIError as error:
+                raise _model_error(error) from error
+        raise ModelError("the model rejected the request parameters", code="model_error")
+
+    def _send(self, request: ChatRequest, optional: Mapping[str, Any]) -> Any:
+        return self._client.responses.create(
+            model=self._model,
+            store=False,
+            input=[
+                {"role": "system", "content": request.system},
+                {"role": "user", "content": request.user},
+            ],
+            text={
+                "format": {
+                    "type": "json_schema",
+                    "name": request.schema_name,
+                    "schema": request.schema,
+                    "strict": True,
+                }
+            },
+            max_output_tokens=request.max_output_tokens,
+            **optional,
+        )
+
+    def _relax(self, message: str, sent: Mapping[str, Any]) -> bool:
+        """Lower the reasoning effort or drop the rejected parameter; False if none matches."""
+        rejected = next((name for name in sent if name in message), None)
+        if rejected is None:
+            return False
+        with self._lock:
+            effort = sent[rejected].get("effort") if rejected == "reasoning" else None
+            if effort is not None and effort != FALLBACK_EFFORT:
+                self._optional[rejected] = {"effort": FALLBACK_EFFORT}
+            else:
+                self._optional.pop(rejected, None)
+        logger.info("model %s rejected %s; retrying with it relaxed", self._model, rejected)
+        return True
 
 
 class OpenAIEmbedder:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
@@ -16,6 +17,8 @@ from wellscope.evals.scoring import ItemResult, score
 from wellscope.qa.analyzer import Turn
 from wellscope.qa.service import Answer, QAService
 
+logger = logging.getLogger(__name__)
+
 
 def run_eval(
     service: QAService, items: Sequence[GoldenItem], workers: int
@@ -24,7 +27,12 @@ def run_eval(
 
     def answer(item: GoldenItem) -> Answer:
         history = [Turn(turn.question, turn.answer) for turn in item.history]
-        return service.ask(item.question, history)
+        try:
+            return service.ask(item.question, history)
+        except Exception as error:  # one failing item must not abort a paid run
+            logger.exception("evaluation item %s failed", item.id)
+            reason = f"exception:{type(error).__name__}"
+            return Answer(status="error", language=item.lang, markdown="", html="", reason=reason)
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
         answers = list(pool.map(answer, items))
