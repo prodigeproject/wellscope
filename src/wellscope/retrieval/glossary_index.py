@@ -112,7 +112,11 @@ def _aliases(entry: GlossaryEntry) -> list[str]:
 
 
 def _spelling(entry: GlossaryEntry, alias: str) -> _Spelling:
-    pattern = rf"(?<![0-9A-Za-z]){re.escape(alias)}(?![0-9A-Za-z])"
+    """Whole-word pattern; an alias that starts with a symbol (``-1``) may end a name."""
+    if alias[0].isalnum():
+        pattern = rf"(?<![0-9A-Za-z]){re.escape(alias)}(?![0-9A-Za-z])"
+    else:
+        pattern = rf"{re.escape(alias)}(?![0-9A-Za-z/])"
     caseless = re.compile(pattern, re.IGNORECASE) if len(alias) >= MIN_CASELESS_CHARS else None
     return _Spelling(entry, re.compile(pattern), caseless)
 

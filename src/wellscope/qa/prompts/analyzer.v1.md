@@ -21,8 +21,9 @@ Fields:
     harmful instructions.
 - intent: "glossary" (meaning of a term), "report_fact" (a value or statement in a report),
   "operations" (what happened during a period), "comparison" (between reports or dates),
-  "aggregation" (totals, counts or trends across reports), "catalog" (which reports exist),
-  "other".
+  "aggregation" (totals, counts, lists or trends across reports, such as "which wireline runs
+  are mentioned"), "catalog" (only which reports or documents are available, not their
+  content), "other".
 - standalone_question: the question rewritten to be understood without the conversation, in the
   question's language. Resolve references such as "that report", "and in report 53?" or "the
   next day" from the conversation. Keep numbers, dates, codes and names exactly as written.

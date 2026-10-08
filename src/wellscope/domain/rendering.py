@@ -122,8 +122,9 @@ def render_document(document: ReportDocument) -> str:
 
 def glossary_passage(entry: GlossaryEntry) -> Passage:
     """One glossary entry, stating how certain the glossary is about it."""
-    meaning = entry.expansion or "meaning unknown"
-    body = f"{entry.term} — {meaning}"
+    unknown = entry.status is GlossaryStatus.UNKNOWN or not (entry.expansion or entry.description)
+    meaning = entry.expansion or ("meaning unknown" if unknown else "")
+    body = f"{entry.term} — {meaning}" if meaning else entry.term
     if entry.description:
         body += f": {entry.description}"
     if entry.status is GlossaryStatus.TO_BE_CONFIRMED:
