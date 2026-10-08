@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 ALIGN_TOLERANCE = 20.0
+SELF_DELIMITED = "#"
 _NEVER = re.compile(r"(?!)")
 
 
@@ -66,9 +67,9 @@ def extract_pairs(
 ) -> dict[str, str]:
     """Map each recognised label's key to its value text.
 
-    A label must start at a word boundary and be followed by a colon; a heading label must fill
-    its whole line. A repeated label (for example a page header printed on every page) keeps its
-    first value.
+    A label must start at a word boundary and be followed by a colon (a label that ends in ``#``,
+    such as ``BHA no.#``, needs none); a heading label must fill its whole line. A repeated label
+    (for example a page header printed on every page) keeps its first value.
     """
     pattern, keys = _compile(tuple(specs))
     heading_keys = {_normalise(label): spec.key for spec in headings for label in spec.labels}
@@ -90,7 +91,7 @@ def extract_pairs(
             current = current if accepted else None
         for index, match in enumerate(matches):
             end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
-            key = keys[_normalise(match["label"])]
+            key = keys[_normalise(match["label"].rstrip(": "))]
             if key in values:
                 current = None
                 continue
@@ -120,9 +121,15 @@ def _compile(specs: tuple[LabelSpec, ...]) -> tuple[re.Pattern[str], dict[str, s
     if not keys:
         return _NEVER, keys
     aliases = sorted(keys, key=len, reverse=True)
-    alternation = "|".join(re.escape(alias).replace(r"\ ", r"\s+") for alias in aliases)
-    pattern = re.compile(rf"(?<![A-Za-z0-9])(?P<label>{alternation})\s*:", re.IGNORECASE)
+    alternation = "|".join(_label_pattern(alias) for alias in aliases)
+    pattern = re.compile(rf"(?<![A-Za-z0-9])(?P<label>{alternation})", re.IGNORECASE)
     return pattern, keys
+
+
+def _label_pattern(alias: str) -> str:
+    """A label and its delimiter: a colon, unless the label ends in ``#`` itself."""
+    words = re.escape(alias).replace(r"\ ", r"\s+")
+    return words if alias.endswith(SELF_DELIMITED) else rf"{words}\s*:"
 
 
 def _normalise(label: str) -> str:

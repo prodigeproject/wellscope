@@ -66,6 +66,8 @@ fields:
   remarks: {section: status, labels: ["Remarks"]}
   daily_mud_cost: {section: mud_check, kind: quantity, labels: ["Daily mud"]}
   cum_mud_cost: {section: mud_check, kind: quantity, labels: ["Cum. mud cost"]}
+  bha_number: {section: bha, labels: ["BHA no.#"]}
+  bit_number: {section: bha, labels: ["Bit no."]}
   bha_time_in: {section: bha, labels: ["Date/Time in"]}
   bha_time_out: {section: bha, labels: ["Date/Time out"]}
   bha_purpose: {section: bha, labels: ["Purpose"]}
