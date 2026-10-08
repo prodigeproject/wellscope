@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from bisect import bisect_left
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -63,14 +64,16 @@ def _page_layout(number: int, page: Page) -> PageLayout:
     visible = visible.filter(lambda obj: id(obj) not in overflow).dedupe_chars(
         tolerance=DEDUPE_TOLERANCE
     )
-    words = visible.extract_words(x_tolerance=WORD_X_TOLERANCE, y_tolerance=WORD_Y_TOLERANCE)
+    words = visible.extract_words(
+        x_tolerance=WORD_X_TOLERANCE, y_tolerance=WORD_Y_TOLERANCE, return_chars=True
+    )
     edges = [edge for edge in page.edges if _length(edge) >= MIN_RULE_LENGTH]
     cells = {Box(*cell) for table in visible.find_tables(TABLE_SETTINGS) for cell in table.cells}
     return PageLayout(
         number=number,
         width=float(page.width),
         height=float(page.height),
-        words=tuple(_word(word) for word in words),
+        words=tuple(part for word in words for part in _split_at_borders(word, border_lines)),
         cells=tuple(sorted(cells, key=lambda box: (box.top, box.x0))),
         vertical_rules=tuple(_rule(edge) for edge in edges if edge["orientation"] == "v"),
         horizontal_rules=tuple(_rule(edge) for edge in edges if edge["orientation"] == "h"),
@@ -115,6 +118,34 @@ def _clipped(run: Sequence[dict[str, Any]], borders: Sequence[Rule]) -> set[int]
         return set()
     limit = min(limits)
     return {id(char) for char in run if _centre_x(char) > limit}
+
+
+def _split_at_borders(word: dict[str, Any], borders: Sequence[Rule]) -> list[Word]:
+    """Split a word whose characters sit on both sides of a cell border into one word per side."""
+    middle = (float(word["top"]) + float(word["bottom"])) / 2
+    cuts = sorted(
+        rule.x0
+        for rule in borders
+        if float(word["x0"]) < rule.x0 < float(word["x1"])
+        and rule.top - VERTICAL_SLACK <= middle <= rule.bottom + VERTICAL_SLACK
+    )
+    chars = word.get("chars") or []
+    if not cuts or not chars:
+        return [_word(word)]
+    groups: list[list[dict[str, Any]]] = [[] for _ in range(len(cuts) + 1)]
+    for char in chars:
+        groups[bisect_left(cuts, _centre_x(char))].append(char)
+    return [_word(_merge_chars(group)) for group in groups if group]
+
+
+def _merge_chars(chars: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "text": "".join(str(char["text"]) for char in chars),
+        "x0": min(float(char["x0"]) for char in chars),
+        "x1": max(float(char["x1"]) for char in chars),
+        "top": min(float(char["top"]) for char in chars),
+        "bottom": max(float(char["bottom"]) for char in chars),
+    }
 
 
 def _centre_x(char: dict[str, Any]) -> float:

@@ -3,8 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from reportlab.pdfbase.pdfmetrics import stringWidth
 
-from tests.support.pdf_canvas import pdf_canvas
+from tests.support.pdf_canvas import FONT, FONT_SIZE, pdf_canvas
 from wellscope.errors import DocumentParseError
 from wellscope.ingestion.pdf.layout import load_layout
 
@@ -27,6 +28,19 @@ def test_load_layout_clips_text_that_spills_past_a_cell_border(overflowing_table
     assert "7" in texts
     assert not any(text.endswith("7") and len(text) > 1 for text in texts)
     assert all(word.x1 <= 121 for word in page.words if word.text.startswith("OVERFLOW"))
+
+
+def test_load_layout_splits_words_that_touch_across_a_cell_border(tmp_path: Path) -> None:
+    path = tmp_path / "touching.pdf"
+    border = 120.0
+    left_text = "ABCD"
+    left_x = border - stringWidth(left_text, FONT, FONT_SIZE) - 0.2
+    with pdf_canvas(path) as canvas:
+        canvas.grid(columns=[20, border, 200], rows=[50, 70])
+        canvas.text(left_x, 55, left_text)
+        canvas.text(border + 0.4, 55, "WXYZ")
+    texts = [word.text for word in load_layout(path)[0].words]
+    assert texts == ["ABCD", "WXYZ"]
 
 
 def test_load_layout_detects_cells_from_ruling_lines(overflowing_table: Path) -> None:
