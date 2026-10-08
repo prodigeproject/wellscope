@@ -32,6 +32,12 @@ SUMMARY_FIELDS = (
     "current_operation",
 )
 SUMMARY_VALUE_LIMIT = 160
+# Everyday names for labels the reports abbreviate, so a question in plain words ("mud weight",
+# "what drill was held") lands on the field that answers it. Keyed by field key, or by
+# (table section, first cell) for table rows.
+FIELD_NOTES = {"mud_weight": "mud weight", "drill_type": "safety drill conducted"}
+ROW_NOTES = {("mud_check", "density (ppg)"): "mud weight"}
+MUD_DENSITY = ("mud_check", "density (ppg)")
 SECTION_TITLES = {
     "header": "Report header",
     "well_info": "Well info",
@@ -83,7 +89,22 @@ def catalog_summary(document: ReportDocument) -> str:
         if field is not None and field.raw:
             value = field.raw[:SUMMARY_VALUE_LIMIT]
             facts.append(f"{field.label}: {value}")
+    if "mud_weight" not in document.fields:
+        density = _table_value(document, *MUD_DENSITY)
+        if density:
+            facts.append(f"Mud weight (density, ppg): {density}")
     return "; ".join(facts)
+
+
+def _table_value(document: ReportDocument, section: str, label: str) -> str | None:
+    """The first non-blank value of the table row whose first cell is ``label``."""
+    for table in document.tables:
+        if table.section != section:
+            continue
+        for row in table.rows:
+            if row and row[0].strip().lower() == label:
+                return next((cell for cell in row[1:] if cell.strip()), None)
+    return None
 
 
 def document_passages(document: ReportDocument) -> list[Passage]:
@@ -145,11 +166,12 @@ def glossary_passage(entry: GlossaryEntry) -> Passage:
 def _field_passages(document: ReportDocument) -> Iterator[Passage]:
     sections: dict[str, list[str]] = {}
     pages: dict[str, int] = {}
-    for field in document.fields.values():
+    for key, field in document.fields.items():
         value = field.raw or BLANK
         if field.date is not None and field.date.isoformat() not in value:
             value += f" ({field.date.isoformat()})"
-        sections.setdefault(field.section, []).append(f"- {field.label}: {value}")
+        label = _noted(field.label, FIELD_NOTES.get(key))
+        sections.setdefault(field.section, []).append(f"- {label}: {value}")
         pages.setdefault(field.section, field.page)
     for section, lines in sections.items():
         title = SECTION_TITLES.get(section, section.replace("_", " ").capitalize())
@@ -220,16 +242,28 @@ def _table_passages(document: ReportDocument) -> Iterator[Passage]:
 
 def _table_lines(table: Table) -> list[str]:
     """Markdown rows; flattened column names, when known, replace the raw header rows."""
+    rows = [_noted_row(table.section, row) for row in table.rows]
     if table.columns:
         header = [table.columns, ["---"] * len(table.columns)]
-        return [_markdown_row(row) for row in [*header, *table.rows[table.header_rows :]]]
-    width = max((len(row) for row in table.rows), default=0)
+        return [_markdown_row(row) for row in [*header, *rows[table.header_rows :]]]
+    width = max((len(row) for row in rows), default=0)
     lines = []
-    for row_number, row in enumerate(table.rows, 1):
+    for row_number, row in enumerate(rows, 1):
         lines.append(_markdown_row(row))
         if row_number == table.header_rows:
             lines.append(_markdown_row(["---"] * width))
     return lines
+
+
+def _noted(label: str, note: str | None) -> str:
+    return f"{label} ({note})" if note and note not in label.lower() else label
+
+
+def _noted_row(section: str, row: Sequence[str]) -> list[str]:
+    if not row:
+        return list(row)
+    note = ROW_NOTES.get((section, row[0].strip().lower()))
+    return [_noted(row[0], note), *row[1:]]
 
 
 def _markdown_row(cells: Sequence[str]) -> str:
