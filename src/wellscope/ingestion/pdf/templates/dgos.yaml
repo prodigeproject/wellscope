@@ -1,0 +1,77 @@
+# Daily Geological Operations Summary (DGOS) form: a one-page dashboard.
+# Heading labels (heading: true) stand alone on their line; their value is the following text.
+id: dgos@1
+doc_type: DGOS
+title: Daily Geological Operations Summary
+signatures: ["DAILY GEOLOGICAL OPERATIONS SUMMARY"]
+operator_above_title: false
+period: {start_offset_hours: -18, length_hours: 24}
+report_number_field: report_number
+report_date_field: current_date
+well:
+  name: well_name
+  block: block
+  region: region
+  rig: rig_name
+  operator: operator
+
+fields:
+  afe_number: {section: header, labels: ["AFE No."]}
+  current_date: {section: header, kind: date, labels: ["Current Date"]}
+  start_date: {section: header, kind: date, labels: ["Start Date"]}
+  spud_date: {section: header, kind: date, labels: ["Spud Date"]}
+  report_number: {section: well_data, kind: integer, labels: ["Report No"]}
+  well_name: {section: well_data, labels: ["WELL NAME"]}
+  operator: {section: well_data, labels: ["OPERATOR"]}
+  operatorship: {section: well_data, labels: ["OPERATORSHIP"]}
+  block: {section: well_data, labels: ["BLOCK"]}
+  basin: {section: well_data, labels: ["BASIN"]}
+  water_depth: {section: well_data, kind: quantity, labels: ["WD"]}
+  country: {section: well_data, labels: ["COUNTRY"]}
+  region: {section: well_data, labels: ["REGION"]}
+  well_classification: {section: well_data, labels: ["WELL CLASSIFICATION"]}
+  well_profile: {section: well_data, labels: ["WELL PROFILE"]}
+  current_operation: {section: operation_update, labels: ["CURRENT OPERATION @ 0600 HRS"]}
+  last_24h_operation: {section: operation_update, heading: true, labels: ["LAST 24 HRS OPERATION"]}
+  npt_note: {section: operation_update, labels: ["NPT"]}
+  next_24h_operation: {section: operation_update, heading: true, labels: ["NEXT 24 HRS OPERATION"]}
+  objectives: {section: objectives, heading: true, labels: ["OBJECTIVES"]}
+  offset_wells: {section: objectives, labels: ["OFFSET WELLS"]}
+  latitude: {section: location, labels: ["LATITUDE"]}
+  longitude: {section: location, labels: ["LONGITUDE"]}
+  northing: {section: location, kind: quantity, labels: ["NORTHING"]}
+  easting: {section: location, kind: quantity, labels: ["EASTING"]}
+  datum: {section: location, labels: ["DATUM"]}
+  projection: {section: location, labels: ["PROJECTION"]}
+  max_deviation: {section: location, labels: ["MAX DEVIATION"]}
+  location_remarks: {section: location, labels: ["LOCATION REMARKS"]}
+  operation_geologists: {section: location, labels: ["Operation Geologist(s)"]}
+  wellsite_geologists: {section: location, labels: ["Wellsite Geologist"]}
+  rig_name: {section: rig, labels: ["RIG NAME"]}
+  rig_type: {section: rig, labels: ["RIG TYPE"]}
+  rig_contractor: {section: rig, labels: ["RIG CONTRACTOR"]}
+  dfe_amsl: {section: rig, kind: quantity, labels: ["DFE (AMSL)"]}
+
+# Sub-titles printed inside blocks; they end the value above them.
+stop_lines: ["WELL DATA", "LOCATION DATA", "RIG INFORMATION", "DAILY GEOLOGICAL OPERATIONS SUMMARY"]
+
+sections:
+  - {name: operation_update, kind: kv, merge_cells: true, titles: ["OPERATION UPDATE (0600 - 0600 HRS)"]}
+  - {name: remarks, split_lines: true, kind: remarks, full_row: true, titles: ["REMARKS"]}
+  - {name: casing_shoe, header_rows: 2, titles: ["CASING AND SHOE DEPTH"]}
+  - {name: formation_tops, header_rows: 3, titles: ["FORMATION TOPS"]}
+  - {name: lithology, header_rows: 2, titles: ["LITHOLOGY"]}
+  - {name: gas_show, header_rows: 2, titles: ["GAS SHOW"]}
+  - {name: oil_show, header_rows: 3, titles: ["OIL SHOW"]}
+  - {name: mnemonics, split_lines: true, titles: ["MNEMONICS - OPERATION"]}
+
+grids:
+  - name: progress_summary
+    header: ["Phase", "Days", "Cost", "Depth"]
+    rows:
+      - [phase, days, cost_musd, "depth_mddf|depth_tvdss"]
+      - [null, afe_days, afe_cost_musd, "afe_depth_mddf|afe_depth_tvdss"]
+  - name: progress
+    header: ["Progress", "Ave. ROP", "MW", "Current Date"]
+    rows:
+      - [progress, avg_rop, mud_weight, report_time]

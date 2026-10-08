@@ -1,0 +1,171 @@
+# Daily Operation Report (DDR) form, as issued by the operator's reporting system.
+# Labels are matched case-insensitively and must be followed by a colon in the form.
+# A section title ending in "*" matches by prefix (e.g. "BHA no.# 3").
+id: ddr@1
+doc_type: DDR
+title: Daily Operation Report
+signatures: ["Daily Operation Report"]
+operator_above_title: true
+period: {start_offset_hours: 0, length_hours: 30}
+report_number_field: report_number
+report_date_field: report_date
+well:
+  name: well
+  wellbore: wellbore
+  field: field
+  block: block
+  region: region
+  rig: rig_name
+
+fields:
+  well: {section: header, labels: ["Well"]}
+  wellbore: {section: header, labels: ["Wellbore No."]}
+  report_number: {section: header, kind: integer, labels: ["Report no."]}
+  report_date: {section: header, kind: date, labels: ["Report date"]}
+  event_description: {section: well_info, labels: ["Event Description"]}
+  water_depth: {section: well_info, kind: quantity, labels: ["Water Depth"]}
+  region: {section: well_info, labels: ["Region"]}
+  rig_name: {section: well_info, labels: ["Rig Name"]}
+  objective: {section: well_info, labels: ["Objective"]}
+  field: {section: well_info, labels: ["Field / Platform"]}
+  afe_number: {section: well_info, labels: ["AFE No."]}
+  start_date: {section: well_info, kind: date, labels: ["Start date"]}
+  spud_date: {section: well_info, kind: date, labels: ["Spud date"]}
+  end_date: {section: well_info, kind: date, labels: ["End date"]}
+  block: {section: well_info, labels: ["Block"]}
+  lead_ds: {section: well_info, labels: ["Lead DS"]}
+  night_ds: {section: well_info, labels: ["Night DS"]}
+  company_engineer: {section: well_info, labels: ["Engineer"]}
+  dol: {section: depth_days, kind: quantity, labels: ["DOL"]}
+  dfs: {section: depth_days, kind: quantity, labels: ["DFS"]}
+  total_days: {section: depth_days, kind: quantity, labels: ["Total Days"]}
+  est_days: {section: depth_days, kind: quantity, labels: ["Est days"]}
+  daily_npt: {section: depth_days, kind: quantity, labels: ["Daily NPT"]}
+  cumm_npt: {section: depth_days, kind: quantity, labels: ["Cumm NPT"]}
+  md: {section: depth_days, kind: quantity, labels: ["MD"]}
+  tvd: {section: depth_days, kind: quantity, labels: ["TVD"]}
+  progress: {section: depth_days, kind: quantity, labels: ["Progress"]}
+  final_tmd: {section: depth_days, kind: quantity, labels: ["Final TMD"]}
+  rotating_hrs: {section: depth_days, kind: quantity, labels: ["Rotating Hrs"]}
+  cum_rot_hrs: {section: depth_days, kind: quantity, labels: ["Cum Rot Hrs"]}
+  avg_rop: {section: depth_days, kind: quantity, labels: ["Avg. ROP"]}
+  last_casing: {section: depth_days, kind: quantity, labels: ["Last Casing"]}
+  last_hole_size: {section: depth_days, kind: quantity, labels: ["Last Hole Size"]}
+  last_shoe_tmd: {section: depth_days, kind: quantity, labels: ["Last Shoe TMD"]}
+  last_shoe_tvd: {section: depth_days, kind: quantity, labels: ["Last Shoe TVD"]}
+  current_hole_size: {section: depth_days, kind: quantity, labels: ["Current Hole Size"]}
+  daily_cost: {section: costs, kind: quantity, labels: ["Daily Cost"]}
+  cumm_cost: {section: costs, kind: quantity, labels: ["Cumm Cost"]}
+  afe_cost: {section: costs, kind: quantity, labels: ["AFE Cost"]}
+  supp_costs_days: {section: costs, labels: ["Supp Costs / Days"]}
+  expenditure: {section: costs, kind: quantity, labels: ["Expenditure"]}
+  current_status: {section: status, labels: ["Current status"]}
+  summary_24h: {section: status, labels: ["24 hr summary"]}
+  forecast_24h: {section: status, labels: ["24 hr forecast"]}
+  incident: {section: status, labels: ["Incident / Accident"]}
+  remarks: {section: status, labels: ["Remarks"]}
+  daily_mud_cost: {section: mud_check, kind: quantity, labels: ["Daily mud"]}
+  cum_mud_cost: {section: mud_check, kind: quantity, labels: ["Cum. mud cost"]}
+  bha_time_in: {section: bha, labels: ["Date/Time in"]}
+  bha_time_out: {section: bha, labels: ["Date/Time out"]}
+  bha_purpose: {section: bha, labels: ["Purpose"]}
+  bha_length: {section: bha, kind: quantity, labels: ["BHA Length (m)"]}
+  bha_min_id: {section: bha, kind: quantity, labels: ["Min. ID (in)"]}
+  bha_jar_weight: {section: bha, labels: ["Weight (Above/Below) Jars"]}
+  avg_connection_gas: {section: gas_readings, kind: quantity, labels: ["Avg. conn. gas (%)"]}
+  max_connection_gas: {section: gas_readings, kind: quantity, labels: ["Max. connection gas (%)"]}
+  avg_trip_gas: {section: gas_readings, kind: quantity, labels: ["Avg. trip gas (%)"]}
+  max_trip_gas: {section: gas_readings, kind: quantity, labels: ["Max. trip gas (%)"]}
+  avg_background_gas: {section: gas_readings, kind: quantity, labels: ["Avg. background gas (%)"]}
+  max_background_gas: {section: gas_readings, kind: quantity, labels: ["Max. background gas (%)"]}
+  avg_h2s: {section: gas_readings, kind: quantity, labels: ["Avg. H2S (%)"]}
+  max_h2s: {section: gas_readings, kind: quantity, labels: ["Max. H2S (%)"]}
+  total_string_volume: {section: mud_volume, kind: quantity, labels: ["Total string vol. (bbl)"]}
+  total_annular_volume: {section: mud_volume, kind: quantity, labels: ["Total annular vol. (bbl)"]}
+  total_pit_volume: {section: mud_volume, kind: quantity, labels: ["Total pit vol. (bbl)"]}
+  lines_volume: {section: mud_volume, kind: quantity, labels: ["Lines (bbl)"]}
+  total_system_volume: {section: mud_volume, kind: quantity, labels: ["Total system vol. (bbl)"]}
+  built_volume: {section: mud_volume, kind: quantity, labels: ["Built (bbl)"]}
+  surface_total_volume: {section: mud_volume, kind: quantity, labels: ["Surface total (bbl)"]}
+  cum_surface_volume: {section: mud_volume, kind: quantity, labels: ["Cum. surface (bbl)"]}
+  subsurface_total_volume: {section: mud_volume, kind: quantity, labels: ["Subsurface total (bbl)"]}
+  dumped_volume: {section: mud_volume, kind: quantity, labels: ["Dumped (bbl)"]}
+  personnel_total: {section: personnel, kind: integer, labels: ["Total No. of People"]}
+  beds: {section: personnel, kind: integer, labels: ["No. of Beds"]}
+  weather_time: {section: weather, labels: ["Time"]}
+  weather: {section: weather, labels: ["Weather"]}
+  temperature_high_low: {section: weather, labels: ["Daily High/Low Temp (°C)"]}
+  wind_speed: {section: weather, kind: quantity, labels: ["10M wind spd. (knots)"]}
+  wind_direction: {section: weather, kind: quantity, labels: ["10M wind dir. (°)"]}
+  ceiling: {section: weather, kind: quantity, labels: ["Ceiling(m)"]}
+  visibility: {section: weather, kind: quantity, labels: ["Visibility(m)"]}
+  swell_height: {section: weather, kind: quantity, labels: ["Swell Height (m)"]}
+  swell_direction: {section: weather, kind: quantity, labels: ["Swell Direct ()"]}
+  current_speed: {section: weather, kind: quantity, labels: ["Speed (knots)"]}
+  current_direction: {section: weather, kind: quantity, labels: ["Dir (°)"]}
+  heave: {section: weather, kind: quantity, labels: ["Heave (m)"]}
+  pitch: {section: weather, kind: quantity, labels: ["Pitch (°)"]}
+  roll: {section: weather, kind: quantity, labels: ["Roll (°)"]}
+  wave_height: {section: weather, kind: quantity, labels: ["Wave Height (m)"]}
+  wave_direction: {section: weather, kind: quantity, labels: ["Wave Direct (°)"]}
+  wave_period: {section: weather, kind: quantity, labels: ["Wave Period (sec)"]}
+  days_since_nlta: {section: safety, kind: quantity, labels: ["Days Since Last NLTA (days)"]}
+  days_since_lta: {section: safety, kind: quantity, labels: ["Days Since LTA (days)"]}
+  stop_cards: {section: safety, kind: integer, labels: ["STOP Cards"]}
+  drill_type: {section: safety, labels: ["Drill type"]}
+  last_drill: {section: safety, labels: ["Last drill"]}
+  last_fire_drill: {section: safety, kind: date, labels: ["Last Fire Drill"]}
+  next_fire_drill: {section: safety, kind: date, labels: ["Next Fire Drill"]}
+  last_weekly_rig_check: {section: safety, kind: date, labels: ["Last weekly rig check"]}
+  daily_inspection_done: {section: safety, kind: date, labels: ["Daily inspection done"]}
+  last_safety_inspection: {section: safety, kind: date, labels: ["Last safety inspection"]}
+  last_bop_function_test: {section: safety, kind: date, labels: ["Last BOP function test"]}
+  last_bop_pressure_test: {section: safety, kind: date, labels: ["Last BOP pressure test"]}
+  next_bop_test_due: {section: safety, kind: date, labels: ["Next test due"]}
+  last_safety_meeting: {section: safety, kind: date, labels: ["Last safety meeting"]}
+  last_bop_drill: {section: safety, kind: date, labels: ["Last BOP drill"]}
+
+sections:
+  - {name: well_info, kind: kv, titles: ["WELL INFO"]}
+  - {name: depth_days, kind: kv, titles: ["DEPTH DAYS"]}
+  - {name: costs, kind: kv, titles: ["COSTS(USD)"]}
+  - {name: status, kind: kv, titles: ["STATUS"]}
+  - {name: operations, kind: operations, titles: ["OPERATION SUMMARY"]}
+  - {name: bit_data, split_lines: true, titles: ["BIT DATA"]}
+  - {name: mud_check, split_lines: true, titles: ["MUD CHECK"]}
+  - {name: bha, kind: kv, titles: ["BHA no.#*"]}
+  - {name: assembly_components, header_rows: 2, titles: ["Assembly Components"]}
+  - {name: gas_readings, kind: kv, titles: ["GAS READINGS"]}
+  - {name: mud_volume, kind: kv, titles: ["MUD VOLUME"]}
+  - {name: pump_hydraulics, titles: ["PUMP/HYDRAULICS"]}
+  - {name: pipe_data, titles: ["PIPE DATA"]}
+  - {name: annular_velocities, titles: ["ANN. VELOCITIES"]}
+  - {name: shaker, header_rows: 1, titles: ["SHAKER"]}
+  - {name: centrifuge, titles: ["CENTRIFUGE"]}
+  - {name: hydrocyclone, header_rows: 1, titles: ["HYDROCYCLONE"]}
+  - {name: lot_fit, header_rows: 1, titles: ["LOT/FIT"]}
+  - {name: formation_data, header_rows: 1, titles: ["FORMATION DATA"]}
+  - {name: support_craft, split_lines: true, header_rows: 1, titles: ["SUPPORT CRAFT"]}
+  - {name: bulks, header_rows: 1, titles: ["BULKS"]}
+  - {name: weather, kind: kv, titles: ["WEATHER"]}
+  - {name: safety_cards, header_rows: 1, titles: ["SAFETY CARDS"]}
+  - {name: personnel, header_rows: 2, titles: ["PERSONNEL"]}
+  - {name: anchor_tension, titles: ["ANCHOR TENSION"]}
+  - {name: safety, kind: kv, titles: ["SAFETY"]}
+  - {name: surveys, header_rows: 1, titles: ["SURVEYS"]}
+
+operations:
+  anchor: "From - To"
+  columns:
+    From: time_range
+    Hrs: hours
+    Phase: phase_code
+    Activity: activity_code
+    Productive: productive_code
+    NPT: npt
+    Rig: rig_status
+    MD: md_from_m
+    Operation: description
+  npt_flag: "Y"
+  next_day_separator: '^(?:\*{6,}|_{6,})$'
+  footer_pattern: '^\d{2}/\d{2}/\d{4}$'

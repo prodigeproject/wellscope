@@ -11,6 +11,8 @@ from rich.table import Table
 from wellscope import __version__
 from wellscope.config import get_settings
 from wellscope.doctor import run_checks
+from wellscope.observability import configure_logging
+from wellscope.pipeline import IngestResult, run_ingest
 
 app = typer.Typer(
     help="WellScope: grounded Q&A over daily drilling and geological well reports.",
@@ -49,6 +51,38 @@ def doctor(
     failed = [check for check in checks if not check.ok and check.severity == "error"]
     if strict and failed:
         raise typer.Exit(code=1)
+
+
+@app.command()
+def ingest() -> None:
+    """Parse every PDF and DOCX under the data folder into JSON (re-run after adding files)."""
+    settings = get_settings()
+    configure_logging("WARNING")
+    console.print(f"Ingesting [bold]{settings.data_dir}[/] -> [bold]{settings.output_dir}[/]")
+    _print_ingest(run_ingest(settings))
+
+
+def _print_ingest(result: IngestResult) -> None:
+    manifest = result.manifest
+    table = Table("document", "type", "report", "date", "pages", "quality")
+    for document in manifest.documents:
+        colour = "green" if document.quality_status == "ok" else "yellow"
+        table.add_row(
+            document.doc_id,
+            document.doc_type.value,
+            str(document.report_number or "-"),
+            str(document.report_date or "-"),
+            str(document.page_count),
+            f"[{colour}]{document.quality_status}[/]",
+        )
+    console.print(table)
+    if manifest.glossary is not None:
+        console.print(f"Glossary: {manifest.glossary.entries} entries")
+    for item in manifest.quarantined:
+        console.print(f"[red]Quarantined[/] {item.source_file}: {item.reason} ({item.detail})")
+    for note in result.notes:
+        console.print(f"[dim]{note}[/]")
+    console.print(f"Index version {manifest.index_version} in {result.duration_s:.1f}s")
 
 
 def main() -> None:
