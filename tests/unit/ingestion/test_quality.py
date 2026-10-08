@@ -15,9 +15,12 @@ from wellscope.domain.documents import (
 from wellscope.ingestion.quality import check_document, cross_document_findings, document_status
 
 SOURCE = SourceInfo(
-    file_name="r.pdf", relative_path="r.pdf", sha256="0" * 64, page_count=1,
+    file_name="r.pdf",
+    relative_path="r.pdf",
+    sha256="0" * 64,
+    page_count=1,
     parser=ParserInfo(name="test", version="1"),
-)  # fmt: skip
+)
 
 
 def operation(seq: int, start: str, end: str, hours: float, *, npt: bool = False) -> Operation:
