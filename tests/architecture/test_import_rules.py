@@ -78,6 +78,16 @@ FORBIDDEN: dict[str, tuple[str, ...]] = {
         "wellscope.llm.openai_adapter",
         "wellscope.api",
     ),
+    "api": (
+        "openai",
+        "sqlite3",
+        "pdfplumber",
+        "pdfminer",
+        "docx",
+        "wellscope.ingestion",
+        "wellscope.storage",
+        "wellscope.llm.openai_adapter",
+    ),
 }
 
 
