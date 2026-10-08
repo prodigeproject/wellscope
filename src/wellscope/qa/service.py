@@ -171,6 +171,9 @@ def _finish(
         return _not_found(language, labels, "answer_not_found", usage)
     by_id = {source.id: source for source in retrieval.sources}
     cited = [by_id[source_id] for source_id in cited_ids(draft) if source_id in by_id]
+    if not cited:
+        # Every fact must be cited; an answer that still cites nothing is not grounded.
+        return _not_found(language, labels, "uncited", usage)
     caveats = list(draft.caveats)
     if check.unsupported_numbers:
         numbers = ", ".join(check.unsupported_numbers)
