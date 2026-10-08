@@ -95,6 +95,7 @@ def test_chat_streams_stages_then_a_cited_answer(client: TestClient) -> None:
     assert "<strong>250,000.00</strong>" in answer["html"]
     assert answer["citations"][0]["label"] == "DDR #12 (2026-01-14)"
     assert answer["meta"]["request_id"] == response.headers["x-request-id"]
+    assert answer["meta"]["cost_usd"] is None  # fake models have no list price
 
 
 def test_chat_validates_the_request(client: TestClient) -> None:
