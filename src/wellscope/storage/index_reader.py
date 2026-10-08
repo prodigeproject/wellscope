@@ -82,6 +82,16 @@ class SearchIndex:
         found = {str(row["chunk_id"]): ChunkRecord(**dict(row)) for row in rows}
         return [found[chunk_id] for chunk_id in chunk_ids if chunk_id in found]
 
+    def document_chunks(self, doc_ids: Collection[str]) -> list[ChunkRecord]:
+        """Every chunk of the given reports, in reading order."""
+        with _read_only(self.path) as connection:
+            rows = connection.execute(
+                "SELECT chunk_id, doc_id, kind, title, page, text FROM chunks "
+                "WHERE doc_id IN (SELECT value FROM json_each(?)) ORDER BY rowid",
+                (_json_list(doc_ids),),
+            ).fetchall()
+        return [ChunkRecord(**dict(row)) for row in rows]
+
     def keyword_search(
         self, terms: Sequence[str], doc_ids: Collection[str] | None, limit: int
     ) -> list[Hit]:
