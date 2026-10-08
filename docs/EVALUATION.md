@@ -43,27 +43,27 @@ An injection planted inside a PDF is tested separately (see [UAT.md](UAT.md), UA
 ## Results (default models)
 
 `gpt-5.4-mini` for answers, `gpt-5.4-nano` for analysis, `text-embedding-3-small` for
-embeddings; final pipeline after the independent review (commit `ed6aa55`).
+embeddings; final pipeline with deterministic conflict caveats (commit `4caa77d`).
 
 | Category | Passed | Rate | 95% CI |
 |---|---|---|---|
 | conflict | 4/4 | 100% | 51–100% |
-| cross | 8/9 | 89% | 56–98% |
-| ddr_fact | 25/26 | 96% | 81–99% |
+| cross | 9/9 | 100% | 70–100% |
+| ddr_fact | 26/26 | 100% | 87–100% |
 | dgos_fact | 16/16 | 100% | 81–100% |
 | glossary | 23/23 | 100% | 86–100% |
 | injection | 2/2 | 100% | 34–100% |
 | not_found | 5/5 | 100% | 57–100% |
 | out_of_scope | 12/12 | 100% | 76–100% |
-| **Overall** | **95/97** | **97.9%** | **92.8–99.4%** |
+| **Overall** | **97/97** | **100%** | **96.2–100%** |
 
 | Metric | Value |
 |---|---|
 | Refusal recall / precision | 100% / 100% |
 | False refusal rate | 0% |
 | Answers with verified citations and figures | 100% |
-| Latency p50 / p95 / max | 3.1 s / 4.6 s / 7.4 s (limit in the brief: 3 minutes) |
-| Tokens per question (mean) | 13,334 in, 167 out |
+| Latency p50 / p95 / max | 3.2 s / 5.0 s / 6.0 s (limit in the brief: 3 minutes) |
+| Tokens per question (mean) | 13,280 in, 167 out |
 | Cost per question (mean) | about USD 0.010 at list prices (USD 0.75 / 4.50 per million input / output tokens for `gpt-5.4-mini`, 0.20 / 1.25 for `gpt-5.4-nano`) |
 
 Refusals are fast (about 1.1 s median) because an out-of-scope question never reaches the
@@ -82,13 +82,20 @@ was too narrow (two items accepted an equally correct reading of the source):
 | 5 | 94/97 | Relevant passages lost in the middle of a long context; a question about content was classed as a catalog question; a glossary entry without expansion was shown as "meaning unknown". |
 | 6 | **97/97** | Independent review (see [RESOLUTION.md](RESOLUTION.md#4-independent-review)): stricter verifier, report-number and scope fixes. |
 | 7 | 95/97 | Two answers left out a value they should have included; prompt rules added for conflicting values and for answering only the question asked. Targeted re-run of the ten items most affected by the review fixes: 10/10. |
-| 8 (final) | **95/97** | — |
+| 8 | 95/97 | Two failures (above) traced to the model rewording a question and to an abbreviated label; fixed in code (R13, R14). |
+| 9 | 95/97 | Two different failures: the model picked one of two conflicting spud dates, and a correct summary of an operation lacked the one keyword the criterion required. Conflict caveats are now written by code from the cross-report checks (R18); the criterion was widened to accept the equipment name as well. |
+| 10 (final) | **97/97** | — |
 
 The two failures of the final run passed in earlier runs: one answer named only one of two
 operations reported for the same day (missing a drill), and one trend answer skipped the mud
 weight of one report. Neither was a wrong figure: the verifier passed every figure shown.
 
-**After the final run.** Both failures were traced to a cause and fixed (R13 and R14 in
+**Why the failures moved between runs.** Every failure in runs 7 to 9 had the right sources in
+the context; the model varied in how it used them. The response was to move each such decision
+from the model into code (see [ADR-0009](adr/0009-deterministic-facts-model-for-language.md)),
+not to tune prompts until a run passed.
+
+**After run 8.** Both failures were traced to a cause and fixed (R13 and R14 in
 [RESOLUTION.md](RESOLUTION.md#4-independent-review)): the analyzer had reworded "what drill" as
 "what drilling", and a DDR records mud weight under a label the question did not use. To stay
 within the API budget the full set was not re-run; instead the two items and a follow-up item

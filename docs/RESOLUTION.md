@@ -69,6 +69,7 @@ failures to their cause) found five more:
 | R15 | Low | No overall time limit: with retries, one answer could in theory exceed the three minutes of the brief. | The web app ends an answer not ready after 170 s with a *try again* message; the worker stops at its next stage. |
 | R16 | Low | The server trusted `X-Forwarded-For` from local clients, so a local caller could rotate its rate-limit key. | Proxy headers are ignored; the `server` header is no longer sent. |
 | R17 | Low | Report labels (which can come from a PDF title) reached the analyzer prompt unescaped. | Escaped like the question and the history. |
+| R18 | Medium | Whether a data conflict was stated depended on the model: in one run it picked one spud date and called the other a mistake. | Conflict caveats are written by code from the cross-report checks whenever the question or answer touches the field; model caveats on the same conflict are replaced ([ADR-0009](adr/0009-deterministic-facts-model-for-language.md)). |
 
 ## 5. Known limitations
 

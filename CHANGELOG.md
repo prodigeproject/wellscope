@@ -4,6 +4,24 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] — 2026-10-09
+
+### Changed
+- Data-conflict caveats are written from the cross-report checks, listing every value with its
+  reports, instead of being left to the model (ADR-0009).
+- Only follow-up questions are rewritten by the analyzer; a standalone question keeps its words.
+- Abbreviated labels carry their everyday name in passages and the catalog ("Density (ppg)
+  (mud weight)", "Drill type (safety drill conducted)"); chunk format 5.
+- The answer prompt asks for every field an ambiguous word fits.
+
+### Security
+- The web app ends an answer not ready after 170 s with a timeout message.
+- `X-Forwarded-For` is ignored, so the rate limit keys on the real peer; no `server` header.
+- Catalog labels are escaped in the analyzer prompt.
+
+### Documentation
+- ADR-0009; second review round (R13–R18); install commands for uv and `.env`; evaluation 97/97.
+
 ## [1.0.0] — 2026-10-09
 
 ### Added
