@@ -7,7 +7,7 @@ so the interface never has to interpret exceptions.
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Collection, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass, replace
 from time import perf_counter
 from typing import Literal
@@ -17,6 +17,7 @@ from wellscope.errors import ModelError
 from wellscope.llm.ports import ChatResult
 from wellscope.qa.analyzer import Analysis, Analyzer, Scope, Turn
 from wellscope.qa.answerer import Answerer, Draft
+from wellscope.qa.conflicts import conflict_caveats, mentions_conflict
 from wellscope.qa.extractors import clean_question, detect_language
 from wellscope.qa.html import render_answer
 from wellscope.qa.policy import decide_scope, has_domain_signal
@@ -136,6 +137,9 @@ class QAService:
         except ModelError as error:
             logger.warning("answer model failed (%s)", error.code)
             return _fixed("error", MessageKind.MODEL_ERROR, analysis.language, error.code, usage)
+        reports = {entry.doc_id: entry.label for entry in catalog}
+        text = f"{question}\n{draft.markdown}"
+        draft = _state_conflicts(draft, text, analysis.language, retrieval, reports)
         return _finish(draft, check, analysis.language, retrieval, labels, usage)
 
     def _draft(
@@ -159,6 +163,28 @@ class QAService:
             usage += _usage(result)
             check = verify(draft, sources)
         return draft, check, usage
+
+
+def _state_conflicts(
+    draft: Draft,
+    text: str,
+    language: Language,
+    retrieval: Retrieval,
+    reports: Mapping[str, str],
+) -> Draft:
+    """Replace the model's notes on a data conflict with every value, taken from the checks."""
+    if draft.status != "answered":
+        return draft
+    notes = conflict_caveats(retrieval.conflicts, reports, text, language)
+    if not notes:
+        return draft
+    touched = [conflict for conflict in retrieval.conflicts if mentions_conflict(text, conflict)]
+    others = [
+        caveat
+        for caveat in draft.caveats
+        if not any(mentions_conflict(caveat, conflict) for conflict in touched)
+    ]
+    return replace(draft, caveats=(*notes, *others))
 
 
 def _finish(
