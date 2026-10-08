@@ -106,3 +106,10 @@ def test_report_sources_state_the_period_they_cover(tmp_path: Path) -> None:
     )
     costs = next(source for source in result.sources if source.section == "Costs (USD)")
     assert costs.period == "2026-01-14 00:00 to 2026-01-15 06:00"
+
+
+def test_capitalised_names_found_in_the_reports_are_recognised(tmp_path: Path) -> None:
+    found = retriever(tmp_path)
+    assert found.names_corpus_entity("What is the MAASP value?")
+    assert not found.names_corpus_entity("Who is the PRESIDENT?")
+    assert not found.names_corpus_entity("no capitals here")

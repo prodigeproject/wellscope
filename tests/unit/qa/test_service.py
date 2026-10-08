@@ -89,6 +89,14 @@ def test_out_of_scope_questions_get_the_canonical_message(tmp_path: Path) -> Non
     assert setup.answer_model.requests == []
 
 
+def test_names_written_in_the_reports_override_an_out_of_scope_verdict(tmp_path: Path) -> None:
+    analysis = {**ANALYSIS, "scope": "out_of_scope", "report_numbers": [], "doc_types": []}
+    setup = Setup(tmp_path, analysis)
+    answer = setup.service.ask("How high was the MAASP?")
+    assert setup.answer_model.requests
+    assert answer.status == "answered"
+
+
 def test_questions_about_missing_reports_list_the_available_ones(tmp_path: Path) -> None:
     setup = Setup(tmp_path, {**ANALYSIS, "report_numbers": [99]})
     answer = setup.service.ask("What was the daily cost in DDR 99?")
