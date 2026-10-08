@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from wellscope.domain.catalog import CatalogEntry
 from wellscope.domain.glossary import GlossaryEntry
+from wellscope.llm.pricing import estimate_cost
 from wellscope.qa.service import Answer
 
 MAX_QUESTION_CHARS = 4000
@@ -156,6 +157,7 @@ class AnswerMeta(BaseModel):
     models: list[str]
     input_tokens: int
     output_tokens: int
+    cost_usd: float | None
 
 
 class AnswerEvent(BaseModel):
@@ -200,8 +202,20 @@ class AnswerEvent(BaseModel):
                 models=[usage.model for usage in answer.usage],
                 input_tokens=sum(usage.input_tokens for usage in answer.usage),
                 output_tokens=sum(usage.output_tokens for usage in answer.usage),
+                cost_usd=_cost(answer),
             ),
         )
+
+
+def _cost(answer: Answer) -> float | None:
+    """Estimated cost at list prices; ``None`` when a model has no known price."""
+    costs = [
+        estimate_cost(usage.model, usage.input_tokens, usage.output_tokens)
+        for usage in answer.usage
+    ]
+    if any(cost is None for cost in costs):
+        return None
+    return sum(cost for cost in costs if cost is not None)
 
 
 class ErrorBody(BaseModel):

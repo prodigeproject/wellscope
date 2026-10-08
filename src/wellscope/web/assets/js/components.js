@@ -126,6 +126,9 @@ export function answerCard(answer, { onCopy }) {
     el("footer", { className: "answer__meta" }, [
       el("span", { className: "tabular", text: `${(answer.meta.latency_ms / 1000).toFixed(1)} s` }),
       answer.meta.models.length ? el("span", { text: answer.meta.models.at(-1) }) : null,
+      answer.meta.cost_usd === null
+        ? null
+        : el("span", { className: "tabular", text: `≈ $${answer.meta.cost_usd.toFixed(3)}`, attrs: { title: "Estimated at list prices" } }),
       el("button", { className: "button button--small", attrs: { type: "button" }, on: { click: () => onCopy(answer) } }, [
         icon("copy"),
         el("span", { text: "Copy" }),

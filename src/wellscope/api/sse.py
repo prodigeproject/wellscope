@@ -74,9 +74,11 @@ async def _produce(
     try:
         async with slots:
             answer = await asyncio.to_thread(qa.ask, question.text, question.history, on_stage)
+        event = AnswerEvent.of(answer, question.request_id)
         outcome = {"status": answer.status, "reason": answer.reason, "verified": answer.verified}
-        logger.info("question answered", extra=outcome | {"latency_ms": answer.latency_ms})
-        payload = AnswerEvent.of(answer, question.request_id).model_dump(mode="json")
+        usage = {"latency_ms": answer.latency_ms, "cost_usd": event.meta.cost_usd}
+        logger.info("question answered", extra=outcome | usage)
+        payload = event.model_dump(mode="json")
         await queue.put(("answer", payload))
     except Exception:  # last-resort boundary: the stream must end with an event
         logger.exception("answering failed")
