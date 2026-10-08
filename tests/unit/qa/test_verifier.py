@@ -65,3 +65,16 @@ def test_feedback_names_every_problem() -> None:
     feedback = result.feedback()
     assert "S7" in feedback
     assert "999.5" in feedback
+
+
+def test_times_and_dates_must_appear_in_cited_sources() -> None:
+    sources = (Source("S1", "d", "DDR", "Ops", 1, "17:00 - 24:00 STDBY on 09/08/2026"),)
+    good = draft("Standby 17:00-24:00 on 9 August 2026 [S1].")
+    assert verify(good, sources, "q").ok
+    bad = verify(draft("Standby from 16:00 on 10/08/2026 [S1]."), sources, "q")
+    assert bad.unsupported_numbers == ("16:00", "10/08/2026")
+
+
+def test_midnight_may_be_written_either_way() -> None:
+    sources = (Source("S1", "d", "DDR", "Ops", 1, "23:15 - 0:00"),)
+    assert verify(draft("From 23:15 to 24:00 [S1]."), sources, "q").ok

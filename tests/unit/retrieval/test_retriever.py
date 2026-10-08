@@ -98,3 +98,11 @@ def test_reports_over_budget_fall_back_to_search(tmp_path: Path) -> None:
     result = retriever(tmp_path, budget=400).retrieve(query("reamer", Intent.OPERATIONS))
     assert result.mode == "search"
     assert any("reamer" in source.text for source in result.sources)
+
+
+def test_report_sources_state_the_period_they_cover(tmp_path: Path) -> None:
+    result = retriever(tmp_path).retrieve(
+        query("daily cost?", filters=DocumentFilter(report_numbers=(12,)))
+    )
+    costs = next(source for source in result.sources if source.section == "Costs (USD)")
+    assert costs.period == "2026-01-14 00:00 to 2026-01-15 06:00"

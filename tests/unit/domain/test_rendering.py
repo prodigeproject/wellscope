@@ -97,3 +97,10 @@ def test_glossary_passage_for_unknown_terms_says_so() -> None:
 
 def test_catalog_summary_lists_key_facts_that_are_present() -> None:
     assert catalog_summary(make_document()) == "Daily Cost: 250,000.00"
+
+
+def test_operation_totals_follow_the_operations() -> None:
+    kinds = [passage.kind for passage in document_passages(make_document())]
+    assert kinds.index("totals") == kinds.index("operation") + 1
+    totals = passages_by_kind(make_document())["totals"][0]
+    assert "- NPT: 2.75 h (16:15–19:00)" in totals
