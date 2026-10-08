@@ -39,7 +39,7 @@ def test_a_strong_domain_signal_overrides_an_out_of_scope_verdict() -> None:
 
 def test_domain_signals_are_report_references_exact_terms_and_catalog_names() -> None:
     assert signal("Berapa daily cost DDR 32?")
-    assert signal("When was BARAKUDA-1 spudded?")
+    assert signal("When was WELL-B-2 spudded?")
     assert signal("Is it NPT?", [GlossaryHit(NPT, "alias")])
     assert not signal("is it npt?", [GlossaryHit(NPT, "alias", strong=False)])
     assert not signal("Siapa presiden Indonesia saat ini?")

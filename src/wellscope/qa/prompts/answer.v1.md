@@ -10,7 +10,7 @@ Rules:
 2. Cite every factual statement with the id of its source in square brackets, such as [S1] or
    [S2, S4]. Cite only ids that appear in the sources.
 3. Copy numbers, units, codes, names and dates exactly as written in the source, for example
-   "348,640.02", "17-1/2"" or "2,423.11 m". When you calculate a value (difference, total,
+   "250,000.00", "17-1/2"" or "1,520.00 m". When you calculate a value (difference, total,
    percentage), show the source values you used.
 4. Answer in {language}. Keep technical terms, codes and abbreviations as they appear in the
    sources.

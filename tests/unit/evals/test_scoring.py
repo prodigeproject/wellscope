@@ -38,10 +38,10 @@ def answer(
 
 
 def test_numbers_match_whatever_the_separators() -> None:
-    assert contains("Biaya harian 348.640,02 USD", "348,640.02")
+    assert contains("Biaya harian 250.000,00 USD", "250,000.00")
     assert contains("total 1355 days", "1,355")
     assert contains("7 jam", "7.00")
-    assert not contains("348,640.12", "348,640.02")
+    assert not contains("250,000.10", "250,000.00")
 
 
 def test_dates_match_in_any_written_form() -> None:
@@ -57,7 +57,7 @@ def test_text_matching_ignores_case_dashes_and_spacing() -> None:
 
 def test_an_answer_passes_when_status_content_and_citations_match() -> None:
     result = score(
-        item(must_include=["348,640.02"], must_cite_docs=["ddr-32"]), answer("348,640.02 USD")
+        item(must_include=["250,000.00"], must_cite_docs=["ddr-32"]), answer("250,000.00 USD")
     )
     assert result.passed
     assert result.latency_ms == 1234
@@ -66,13 +66,13 @@ def test_an_answer_passes_when_status_content_and_citations_match() -> None:
 
 def test_missing_facts_and_citations_fail_with_reasons() -> None:
     expectation = item(
-        must_include=["348,640.02"],
-        must_include_any=[["Tayalan", "Jordan"]],
+        must_include=["250,000.00"],
+        must_include_any=[["Smith", "Jones"]],
         must_cite_docs=["ddr-53"],
     )
-    result = score(expectation, answer("Lead DS was Jordan."))
+    result = score(expectation, answer("Lead DS was Jones."))
     assert not result.passed
-    assert result.missing == ("348,640.02",)
+    assert result.missing == ("250,000.00",)
     assert not result.citations_ok
 
 

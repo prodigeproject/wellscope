@@ -112,11 +112,11 @@ def test_tables_with_flattened_columns_render_them_as_the_header() -> None:
         page=1,
         header_rows=1,
         columns=["HOLE", "SHOE m"],
-        rows=[["HOLE", "SHOE"], ["17-1/2", "1858.70"]],
+        rows=[["HOLE", "SHOE"], ["17-1/2", "1500.50"]],
     )
     document = make_document().model_copy(update={"tables": [table]})
     body = passages_by_kind(document)["table"][0]
-    assert body.splitlines() == ["| HOLE | SHOE m |", "| --- | --- |", "| 17-1/2 | 1858.70 |"]
+    assert body.splitlines() == ["| HOLE | SHOE m |", "| --- | --- |", "| 17-1/2 | 1500.50 |"]
 
 
 def test_glossary_passage_without_expansion_gives_the_description() -> None:

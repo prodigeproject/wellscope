@@ -11,10 +11,10 @@ from wellscope.llm.fakes import FakeChatModel
 from wellscope.qa.answerer import Answerer
 from wellscope.retrieval.models import Source
 
-SOURCES = (Source("S1", "ddr-32", "DDR #32", "Costs (USD)", 1, "- Daily Cost: 348,640.02"),)
+SOURCES = (Source("S1", "ddr-32", "DDR #32", "Costs (USD)", 1, "- Daily Cost: 250,000.00"),)
 REPLY: dict[str, Any] = {
     "status": "answered",
-    "answer_markdown": "348,640.02 USD [S1]",
+    "answer_markdown": "250,000.00 USD [S1]",
     "citations": ["S1"],
     "caveats": [],
 }

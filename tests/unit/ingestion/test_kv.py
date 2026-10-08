@@ -48,7 +48,7 @@ def test_extract_pairs_ignores_text_before_the_first_label() -> None:
 
 
 def test_extract_pairs_accepts_aliases_and_ignores_case() -> None:
-    specs = [LabelSpec("engineer", ("PTT Engineer", "Company Engineer"))]
+    specs = [LabelSpec("engineer", ("ACME Engineer", "Company Engineer"))]
     assert extract_pairs(["company engineer: J. Doe"], specs) == {"engineer": "J. Doe"}
 
 

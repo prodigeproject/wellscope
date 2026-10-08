@@ -40,7 +40,7 @@ GLOSSARY_LABEL = "Glossary"
 CATALOG_LABEL = "Report catalog"
 CONFLICTS_LABEL = "Data conflicts"
 
-# Names written in capitals, as reports write them: TAPIS-C, K-28, NAGA-2, PTT.
+# Names written in capitals, as reports write them: PLATFORM-C, K-28, RIG-2, ACME.
 _NAME = re.compile(r"\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+\b|\b[A-Z][A-Z0-9]{2,}\b")
 
 Reports = Mapping[str, CatalogEntry]
@@ -66,7 +66,7 @@ class Retriever:
         return list(hits.values())
 
     def names_corpus_entity(self, text: str) -> bool:
-        """Whether ``text`` names something written in the reports (``TAPIS-C``, ``K-28``)."""
+        """Whether ``text`` names something written in the reports (``PLATFORM-C``, ``K-28``)."""
         names = list(dict.fromkeys(_NAME.findall(text)))
         if not names:
             return False

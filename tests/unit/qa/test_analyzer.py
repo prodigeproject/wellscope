@@ -47,7 +47,7 @@ def test_the_model_decides_intent_and_the_question_decides_report_numbers() -> N
 
 def test_follow_ups_are_rewritten_with_the_conversation_and_catalog() -> None:
     model = replying(PAYLOAD)
-    history = [Turn("What was the daily cost in DDR 32?", "348,640.02 USD [S1]")]
+    history = [Turn("What was the daily cost in DDR 32?", "250,000.00 USD [S1]")]
     analysis = Analyzer(model).analyze("And in report 53?", history, CATALOG)
     assert analysis.standalone_question == "What was the daily cost in DDR 53?"
     request: ChatRequest = model.requests[0]
