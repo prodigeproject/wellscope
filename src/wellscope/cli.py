@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import sys
 from dataclasses import asdict
+from pathlib import Path
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -15,9 +17,18 @@ from wellscope import __version__
 from wellscope.bootstrap import index_projector, qa_service, web_app
 from wellscope.config import get_settings
 from wellscope.doctor import run_checks
+from wellscope.evals.golden import load_golden
+from wellscope.evals.report import summarize
+from wellscope.evals.runner import run_eval, save_run
+from wellscope.evals.scoring import ItemResult
 from wellscope.observability import configure_logging
 from wellscope.pipeline import IngestResult, run_ingest
 from wellscope.qa.service import Answer
+
+DEFAULT_GOLDEN = Path("evals/private/golden.yaml")
+DEFAULT_REPORTS = Path("reports")
+PRIVATE_RUNS = Path("evals/private/runs")
+MAX_WORKERS = 8
 
 app = typer.Typer(
     help="WellScope: grounded Q&A over daily drilling and geological well reports.",
@@ -35,16 +46,19 @@ def _show_version(value: bool) -> None:
 
 @app.callback()
 def _root(
-    version: bool = typer.Option(
-        False, "--version", callback=_show_version, is_eager=True, help="Show the version."
-    ),
+    version: Annotated[
+        bool,
+        typer.Option("--version", callback=_show_version, is_eager=True, help="Show the version."),
+    ] = False,
 ) -> None:
     """WellScope command group."""
 
 
 @app.command()
 def doctor(
-    strict: bool = typer.Option(False, help="Exit with status 1 when an error check fails."),
+    strict: Annotated[
+        bool, typer.Option(help="Exit with status 1 when an error check fails.")
+    ] = False,
 ) -> None:
     """Check configuration, data folders and index state without printing secrets."""
     checks = run_checks(get_settings())
@@ -69,8 +83,8 @@ def ingest() -> None:
 
 @app.command()
 def serve(
-    host: str | None = typer.Option(None, help="Interface to bind (default from settings)."),
-    port: int | None = typer.Option(None, help="Port to listen on (default from settings)."),
+    host: Annotated[str | None, typer.Option(help="Interface to bind.")] = None,
+    port: Annotated[int | None, typer.Option(help="Port to listen on.")] = None,
 ) -> None:
     """Start the web app (http://127.0.0.1:8000 by default); the index reloads after ingest."""
     import uvicorn  # noqa: PLC0415 - only this command needs the server
@@ -86,8 +100,10 @@ def serve(
 
 @app.command()
 def ask(
-    question: str = typer.Argument(..., help="A question about the reports or the glossary."),
-    as_json: bool = typer.Option(False, "--json", help="Print the whole answer as JSON."),
+    question: Annotated[str, typer.Argument(help="A question about the reports or the glossary.")],
+    as_json: Annotated[
+        bool, typer.Option("--json", help="Print the whole answer as JSON.")
+    ] = False,
 ) -> None:
     """Ask one question from the terminal (same pipeline as the web app)."""
     configure_logging("WARNING")
@@ -96,6 +112,40 @@ def ask(
         console.print_json(json.dumps(asdict(answer), default=str))
     else:
         _print_answer(answer)
+
+
+@app.command(name="eval")
+def evaluate(
+    golden: Annotated[Path, typer.Option("--set", help="Golden question set (YAML).")] = (
+        DEFAULT_GOLDEN
+    ),
+    reports: Annotated[Path, typer.Option(help="Folder for aggregate reports.")] = DEFAULT_REPORTS,
+    workers: Annotated[
+        int, typer.Option(min=1, max=MAX_WORKERS, help="Questions answered in parallel.")
+    ] = 4,
+    only: Annotated[list[str] | None, typer.Option(help="Run only these item ids.")] = None,
+) -> None:
+    """Score the pipeline on a golden question set (this calls the configured models)."""
+    configure_logging("WARNING")
+    items = [item for item in load_golden(golden) if not only or item.id in only]
+    runs = run_eval(qa_service(get_settings()), items, workers)
+    results = [result for _, _, result in runs]
+    _print_results(results)
+    summary = summarize(results)
+    overall = summary["overall"]
+    console.print(f"Accuracy {overall['passed']}/{overall['total']} ({overall['rate']:.1%})")
+    report = save_run(runs, summary, reports, PRIVATE_RUNS)
+    console.print(f"Report: {report} (answers kept privately in {PRIVATE_RUNS})")
+
+
+def _print_results(results: list[ItemResult]) -> None:
+    table = Table("id", "category", "status", "verified", "result", "missing")
+    for result in results:
+        verdict = "[green]pass[/]" if result.passed else "[red]fail[/]"
+        verified = "yes" if result.verified else "[yellow]no[/]"
+        missing = "; ".join(result.missing)
+        table.add_row(result.id, result.category, result.status, verified, verdict, missing)
+    console.print(table)
 
 
 def _print_answer(answer: Answer) -> None:
