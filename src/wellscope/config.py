@@ -12,6 +12,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 
 DATABASE_FILENAME = "wellscope.db"
+EMBEDDING_CACHE_FILENAME = "cache/embeddings.db"
 
 
 class Settings(BaseSettings):
@@ -47,6 +48,11 @@ class Settings(BaseSettings):
     def database_path(self) -> Path:
         """Location of the SQLite projection built by ``wellscope ingest``."""
         return self.output_dir / DATABASE_FILENAME
+
+    @property
+    def embedding_cache_path(self) -> Path:
+        """Embedding cache that survives index rebuilds (re-ingest makes no repeat API calls)."""
+        return self.output_dir / EMBEDDING_CACHE_FILENAME
 
 
 @lru_cache(maxsize=1)

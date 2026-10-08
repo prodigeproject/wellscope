@@ -60,9 +60,27 @@ def _grid_fields(spec: GridSpec, rows: list[list[str]], page: int) -> dict[str, 
             label = f"{prefix}{header[column]}".strip()
             keys = key.split(PAIR_KEYS)
             parts = row[column].split(PAIR_VALUES) if len(keys) > 1 else [row[column]]
-            for name, part in zip(keys, parts, strict=False):
-                fields[name] = _value(label, spec.name, part.strip(), page)
+            labels = paired_labels(label, len(keys))
+            for name, part, part_label in zip(keys, parts, labels, strict=False):
+                fields[name] = _value(part_label, spec.name, part.strip(), page)
     return fields
+
+
+def paired_labels(label: str, count: int) -> list[str]:
+    """Split an ``x / y`` header into one label per value.
+
+    A later part inherits the leading words it shares with the first one, so
+    ``Depth m MDDF /m TVDSS`` becomes ``Depth m MDDF`` and ``Depth m TVDSS``.
+    """
+    parts = [part.split() for part in label.split(PAIR_VALUES)]
+    if len(parts) != count or not all(parts):
+        return [label] * count
+    first = parts[0]
+    labels = [" ".join(first)]
+    for words in parts[1:]:
+        shared = first.index(words[0]) if words[0] in first else 0
+        labels.append(" ".join(first[:shared] + words))
+    return labels
 
 
 def _value(label: str, section: str, raw: str, page: int) -> FieldValue:

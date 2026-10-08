@@ -16,7 +16,7 @@ from wellscope.ingestion.pdf.templates import load_templates
 from wellscope.ingestion.quality import check_document
 
 PARSER_NAME = "wellscope"
-PARSER_VERSION = "1.0.0"
+PARSER_VERSION = "1.2.0"
 
 
 def parse_pdf(path: Path, relative_path: str, sha256: str) -> ReportDocument:

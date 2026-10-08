@@ -21,6 +21,7 @@ from wellscope.domain.catalog import (
     QualityReport,
     QuarantinedFile,
 )
+from wellscope.domain.chunks import CHUNK_FORMAT_VERSION
 from wellscope.domain.documents import ReportDocument
 from wellscope.domain.glossary import Glossary
 from wellscope.errors import WellScopeError
@@ -52,7 +53,17 @@ class _Collected:
     notes: list[str] = field(default_factory=list)
 
 
-Projector = Callable[[Sequence[ReportDocument], Glossary | None, str], list[str]]
+@dataclass(frozen=True)
+class ParsedCorpus:
+    """Parse results handed to the index projector."""
+
+    documents: Sequence[ReportDocument]
+    glossary: Glossary | None
+    quality: QualityReport
+    index_version: str
+
+
+Projector = Callable[[ParsedCorpus], list[str]]
 
 
 def run_ingest(settings: Settings, project: Projector | None = None) -> IngestResult:
@@ -81,7 +92,8 @@ def run_ingest(settings: Settings, project: Projector | None = None) -> IngestRe
     store.write_quality_report(quality)
     store.write_manifest(manifest)
     if project is not None:
-        collected.notes.extend(project(documents, collected.glossary, manifest.index_version))
+        corpus = ParsedCorpus(documents, collected.glossary, quality, manifest.index_version)
+        collected.notes.extend(project(corpus))
     return IngestResult(manifest, quality, perf_counter() - started, collected.notes)
 
 
@@ -165,7 +177,7 @@ def _glossary_summary(store: JsonStore, glossary: Glossary | None) -> GlossarySu
 
 def _index_version(documents: Sequence[ReportDocument], glossary: Glossary | None) -> str:
     parts = sorted(f"{document.doc_id}:{document.source.sha256}" for document in documents)
-    parts += [glossary.source.sha256 if glossary else "", PARSER_VERSION]
+    parts += [glossary.source.sha256 if glossary else "", PARSER_VERSION, CHUNK_FORMAT_VERSION]
     return hashlib.sha256("\n".join(parts).encode()).hexdigest()[:INDEX_VERSION_LENGTH]
 
 

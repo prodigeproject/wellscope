@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from datetime import date
 
 MONTHS: dict[str, int] = {
@@ -30,20 +31,32 @@ _MONTH_DAY = re.compile(
 )
 
 
-def find_dates(text: str, default_year: int | None = None) -> list[date]:
+@dataclass(frozen=True, slots=True)
+class DateMatch:
+    """A date found in text, with its position and original spelling."""
+
+    start: int
+    end: int
+    text: str
+    value: date
+
+
+def date_matches(text: str, default_year: int | None = None) -> list[DateMatch]:
     """Every valid date in ``text`` in reading order; partial dates need ``default_year``."""
-    found: dict[int, date] = {}
-    taken: list[range] = []
+    found: list[DateMatch] = []
     for pattern in (_ISO, _DAY_FIRST, _MONTH_DAY, _DAY_MONTH):
         for match in pattern.finditer(text):
-            span = range(match.start(), match.end())
-            if any(span.start in other or other.start in span for other in taken):
+            if any(match.start() < other.end and other.start < match.end() for other in found):
                 continue
             parsed = _to_date(match.groupdict(), default_year)
             if parsed is not None:
-                found[match.start()] = parsed
-                taken.append(span)
-    return [found[position] for position in sorted(found)]
+                found.append(DateMatch(match.start(), match.end(), match.group(), parsed))
+    return sorted(found, key=lambda item: item.start)
+
+
+def find_dates(text: str, default_year: int | None = None) -> list[date]:
+    """Every valid date in ``text`` in reading order; partial dates need ``default_year``."""
+    return [match.value for match in date_matches(text, default_year)]
 
 
 def parse_date(text: str) -> date | None:

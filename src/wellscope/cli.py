@@ -2,17 +2,22 @@
 
 from __future__ import annotations
 
+import json
 import sys
+from dataclasses import asdict
 
 import typer
 from rich.console import Console
+from rich.markdown import Markdown
 from rich.table import Table
 
 from wellscope import __version__
+from wellscope.bootstrap import index_projector, qa_service
 from wellscope.config import get_settings
 from wellscope.doctor import run_checks
 from wellscope.observability import configure_logging
 from wellscope.pipeline import IngestResult, run_ingest
+from wellscope.qa.service import Answer
 
 app = typer.Typer(
     help="WellScope: grounded Q&A over daily drilling and geological well reports.",
@@ -55,11 +60,39 @@ def doctor(
 
 @app.command()
 def ingest() -> None:
-    """Parse every PDF and DOCX under the data folder into JSON (re-run after adding files)."""
+    """Parse every PDF and DOCX under the data folder, then rebuild the search index."""
     settings = get_settings()
     configure_logging("WARNING")
     console.print(f"Ingesting [bold]{settings.data_dir}[/] -> [bold]{settings.output_dir}[/]")
-    _print_ingest(run_ingest(settings))
+    _print_ingest(run_ingest(settings, index_projector(settings)))
+
+
+@app.command()
+def ask(
+    question: str = typer.Argument(..., help="A question about the reports or the glossary."),
+    as_json: bool = typer.Option(False, "--json", help="Print the whole answer as JSON."),
+) -> None:
+    """Ask one question from the terminal (same pipeline as the web app)."""
+    configure_logging("WARNING")
+    answer = qa_service(get_settings()).ask(question)
+    if as_json:
+        console.print_json(json.dumps(asdict(answer), default=str))
+    else:
+        _print_answer(answer)
+
+
+def _print_answer(answer: Answer) -> None:
+    colour = {"answered": "green", "error": "red"}.get(answer.status, "yellow")
+    badge = answer.status if answer.verified else f"{answer.status}, unverified"
+    console.print(f"[bold {colour}]{badge}[/]")
+    console.print(Markdown(answer.markdown))
+    for citation in answer.citations:
+        page = f" p.{citation.page}" if citation.page else ""
+        console.print(f"[dim][{citation.id}] {citation.label} · {citation.section}{page}[/]")
+    for caveat in answer.caveats:
+        console.print(f"[yellow]Note:[/] {caveat}")
+    models = ", ".join(usage.model for usage in answer.usage) or "no model"
+    console.print(f"[dim]{answer.latency_ms} ms · {models} · {answer.reason}[/]")
 
 
 def _print_ingest(result: IngestResult) -> None:
