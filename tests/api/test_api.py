@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
+from tests.support.documents import make_document
+from tests.support.index import build_test_index
 from tests.support.web import make_client, make_settings
 from wellscope.storage.index_reader import SearchIndex
 
@@ -136,3 +140,16 @@ def test_the_web_app_is_served_without_inline_scripts(client: TestClient) -> Non
     assert "<script>" not in page.text
     assert " style=" not in page.text
     assert client.get("/assets/css/tokens.css").status_code == 200
+
+
+def test_question_text_is_logged_only_when_enabled(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    for enabled in (False, True):
+        settings = make_settings(tmp_path / str(enabled), log_questions=enabled)
+        index = build_test_index(settings.database_path, [make_document()])
+        caplog.clear()
+        with make_client(settings, index) as client, caplog.at_level(logging.INFO):
+            client.post("/api/chat", json=QUESTION)
+        record = next(r for r in caplog.records if r.getMessage() == "question received")
+        assert (getattr(record, "question", None) == QUESTION["question"]) is enabled
