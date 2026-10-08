@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     max_question_chars: int = Field(default=1000, ge=50, le=4000)
     rate_limit_per_min: int = Field(default=20, ge=1, le=600)
     llm_timeout_s: float = Field(default=60.0, gt=0, le=170)
-    context_token_budget: int = Field(default=16000, ge=2000, le=100_000)
+    context_token_budget: int = Field(default=24000, ge=2000, le=100_000)
     log_level: LogLevel = "INFO"
     log_questions: bool = False
 

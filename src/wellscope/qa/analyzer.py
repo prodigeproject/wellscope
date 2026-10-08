@@ -144,7 +144,7 @@ def _merge(question: str, reply: _Reply, references: References, result: ChatRes
     filters = DocumentFilter(
         doc_types=references.doc_types or tuple(reply.doc_types),
         report_numbers=references.report_numbers or tuple(reply.report_numbers),
-        dates=references.dates or tuple(filter(None, map(_iso_date, reply.dates))),
+        dates=references.dates or _model_dates(reply),
         date_from=_iso_date(reply.date_from),
         date_to=_iso_date(reply.date_to),
         latest=references.latest or reply.latest,
@@ -206,6 +206,13 @@ def _default_year(catalog: Sequence[CatalogEntry]) -> int | None:
     """Year assumed for dates written without one: that of the newest report."""
     newest = max((entry.report_date for entry in catalog if entry.report_date), default=None)
     return newest.year if newest else None
+
+
+def _model_dates(reply: _Reply) -> tuple[dt.date, ...]:
+    """Specific days named by the model; a period (date_from/date_to) takes precedence."""
+    if reply.date_from or reply.date_to:
+        return ()
+    return tuple(day for day in map(_iso_date, reply.dates) if day is not None)
 
 
 def _iso_date(value: str | None) -> dt.date | None:

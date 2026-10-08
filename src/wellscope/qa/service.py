@@ -15,7 +15,7 @@ from typing import Literal
 from wellscope.domain.messages import Language, MessageKind, message, not_found
 from wellscope.errors import ModelError
 from wellscope.llm.ports import ChatResult
-from wellscope.qa.analyzer import Analysis, Analyzer, Turn
+from wellscope.qa.analyzer import Analysis, Analyzer, Scope, Turn
 from wellscope.qa.answerer import Answerer, Draft
 from wellscope.qa.extractors import clean_question, detect_language
 from wellscope.qa.html import render_answer
@@ -115,6 +115,8 @@ class QAService:
         usage = _usage(analysis.result)
         hits = self._retriever.glossary_hits(analysis.standalone_question, analysis.glossary_terms)
         signal = has_domain_signal(question, analysis.references, hits, catalog)
+        if analysis.scope is Scope.OUT_OF_SCOPE and not signal:
+            signal = self._retriever.names_corpus_entity(question)
         decision = decide_scope(analysis.scope, signal)
         if not decision.allowed:
             kind = MessageKind.OUT_OF_SCOPE

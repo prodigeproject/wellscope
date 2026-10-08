@@ -7,11 +7,13 @@ larger sets fall back to hybrid search within the resolved reports.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping, Sequence
 
 from wellscope.domain.catalog import CatalogEntry, ChunkRecord
 from wellscope.domain.chunks import GLOSSARY_DOC_ID
 from wellscope.domain.rendering import glossary_passage
+from wellscope.domain.text import search_terms
 from wellscope.retrieval.cards import catalog_card, conflict_card
 from wellscope.retrieval.context import SourceBuilder, estimate_tokens
 from wellscope.retrieval.glossary_index import GlossaryHit, GlossaryIndex
@@ -36,6 +38,9 @@ GLOSSARY_LABEL = "Glossary"
 CATALOG_LABEL = "Report catalog"
 CONFLICTS_LABEL = "Data conflicts"
 
+# Names written in capitals, as reports write them: TAPIS-C, K-28, NAGA-2, PTT.
+_NAME = re.compile(r"\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+\b|\b[A-Z][A-Z0-9]{2,}\b")
+
 Reports = Mapping[str, CatalogEntry]
 
 
@@ -57,6 +62,14 @@ class Retriever:
             if hit is not None:
                 hits.setdefault(hit.entry.id, hit)
         return list(hits.values())
+
+    def names_corpus_entity(self, text: str) -> bool:
+        """Whether ``text`` names something written in the reports (``TAPIS-C``, ``K-28``)."""
+        names = list(dict.fromkeys(_NAME.findall(text)))
+        if not names:
+            return False
+        report_ids = [entry.doc_id for entry in self._index.catalog()]
+        return bool(self._index.keyword_search(search_terms(" ".join(names)), report_ids, 1))
 
     def retrieve(self, query: RetrievalQuery) -> Retrieval:
         """Sources for ``query``."""
