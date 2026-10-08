@@ -14,9 +14,9 @@ from rich.markdown import Markdown
 from rich.table import Table
 
 from wellscope import __version__
-from wellscope.bootstrap import index_projector, qa_service, web_app
+from wellscope.bootstrap import index_projector, models, qa_service, web_app
 from wellscope.config import get_settings
-from wellscope.doctor import run_checks
+from wellscope.doctor import model_checks, run_checks
 from wellscope.domain.schemas import json_schemas
 from wellscope.evals.golden import load_golden
 from wellscope.evals.report import summarize
@@ -61,9 +61,18 @@ def doctor(
     strict: Annotated[
         bool, typer.Option(help="Exit with status 1 when an error check fails.")
     ] = False,
+    online: Annotated[
+        bool, typer.Option(help="Also call each configured model once to check access.")
+    ] = False,
 ) -> None:
-    """Check configuration, data folders and index state without printing secrets."""
-    checks = run_checks(get_settings())
+    """Check configuration, data folders, the index and (online) model access; no secrets shown."""
+    settings = get_settings()
+    checks = run_checks(settings)
+    if online:
+        built = models(settings)
+        chat = {"chat": built.chat, "analyzer": built.analyzer}
+        configured = {role: model for role, model in chat.items() if model is not None}
+        checks += model_checks(configured, built.embedder)
     table = Table("check", "status", "detail")
     for check in checks:
         status = "[green]ok[/]" if check.ok else f"[yellow]{check.severity}[/]"

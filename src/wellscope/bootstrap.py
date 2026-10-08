@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import openai
 from fastapi import FastAPI
 
@@ -9,7 +11,7 @@ from wellscope.api.app import Services, create_app
 from wellscope.config import Settings
 from wellscope.indexing import IndexProjector
 from wellscope.llm.openai_adapter import OpenAIChatModel, OpenAIEmbedder
-from wellscope.llm.ports import Embedder
+from wellscope.llm.ports import ChatModel, Embedder
 from wellscope.qa.analyzer import Analyzer
 from wellscope.qa.answerer import Answerer
 from wellscope.qa.service import QAService
@@ -31,29 +33,41 @@ def openai_client(settings: Settings) -> openai.OpenAI | None:
     )
 
 
-def embedder(settings: Settings) -> Embedder | None:
-    """Embedding adapter, or ``None`` when no API key is configured."""
+@dataclass(frozen=True)
+class Models:
+    """Model adapters built from settings; all ``None`` without an API key."""
+
+    chat: ChatModel | None
+    analyzer: ChatModel | None
+    embedder: Embedder | None
+
+
+def models(settings: Settings) -> Models:
+    """The configured OpenAI models (none when no key is set)."""
     client = openai_client(settings)
-    return OpenAIEmbedder(client, settings.embedding_model) if client else None
+    if client is None:
+        return Models(chat=None, analyzer=None, embedder=None)
+    return Models(
+        chat=OpenAIChatModel(client, settings.chat_model),
+        analyzer=OpenAIChatModel(client, settings.analyzer_model),
+        embedder=OpenAIEmbedder(client, settings.embedding_model),
+    )
 
 
 def index_projector(settings: Settings) -> IndexProjector:
     """Index builder used by ``wellscope ingest``."""
     cache = VectorCache(settings.embedding_cache_path)
-    return IndexProjector(settings.database_path, embedder(settings), cache)
+    return IndexProjector(settings.database_path, models(settings).embedder, cache)
 
 
 def qa_service(settings: Settings, index: SearchIndex | None = None) -> QAService:
     """Question-answering service over the index at ``settings.database_path``."""
-    client = openai_client(settings)
+    built = models(settings)
     index = index or SearchIndex(settings.database_path)
-    embedder = OpenAIEmbedder(client, settings.embedding_model) if client else None
-    retriever = Retriever(index, HybridSearch(index, embedder), settings.context_token_budget)
-    if client is None:
-        return QAService(index, retriever, Analyzer(None), None)
-    analyzer = Analyzer(OpenAIChatModel(client, settings.analyzer_model))
-    answerer = Answerer(OpenAIChatModel(client, settings.chat_model))
-    return QAService(index, retriever, analyzer, answerer)
+    search = HybridSearch(index, built.embedder)
+    retriever = Retriever(index, search, settings.context_token_budget)
+    answerer = Answerer(built.chat) if built.chat else None
+    return QAService(index, retriever, Analyzer(built.analyzer), answerer)
 
 
 def web_app(settings: Settings) -> FastAPI:
