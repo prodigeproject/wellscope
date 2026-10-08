@@ -390,7 +390,7 @@ uv run pytest
 uv run ruff check . && uv run ruff format --check . && uv run mypy
 ```
 
-- 349 tests (unit, integration, API, contract and architecture), 93% line coverage; tests that
+- 353 tests (unit, integration, API, contract and architecture), 95% line coverage; tests that
   need the real dataset are marked `dataset` and skip when it is absent; no test calls OpenAI.
 - `pre-commit install` enables the same checks before each commit, plus secret and dataset
   guards.

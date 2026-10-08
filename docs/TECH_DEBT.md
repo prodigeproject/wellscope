@@ -6,7 +6,7 @@ them down. Reviewed at each release.
 | ID | Debt | Impact | Likelihood | Plan |
 |---|---|---|---|---|
 | TD-01 | GitHub Actions does not start on the private repository, so CI (Linux and Windows matrix, gitleaks, CodeQL) has not run; the same checks run locally and in pre-commit | Medium | High until fixed | Enable Actions for the account or make the repository public; fix anything the Linux jobs find |
-| TD-02 | The CLI and the composition root are covered by end-to-end runs and acceptance tests, not unit tests (31% and 54% line coverage) | Low | Medium | Add `CliRunner` tests for `ingest`, `ask --json`, `eval --only` and `schema` with fake models |
+| TD-02 | `serve` and `doctor --online` are exercised only by hand and acceptance tests (CLI line coverage 65%; `ingest`, `ask`, `schema` and `eval` run in tests) | Low | Low | Start the app factory under a test server and fake the model checks |
 | TD-03 | No Playwright end-to-end tests for the web app; checked by hand (UAT-09) | Medium | Medium | Add a browser test: ask, see stages, open a citation, toggle the theme, mobile drawer |
 | TD-04 | The automated `wellscope uat` runner from the plan was not built; acceptance was run by hand and by tests | Low | Low | Script UAT-01/02/03/11 into one command that writes a dated report |
 | TD-05 | Templates are hand-written YAML; a new report family needs a new template | Medium | Medium | Template wizard that proposes labels from one sample; model-assisted mapping reviewed against page text |

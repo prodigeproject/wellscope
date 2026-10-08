@@ -29,7 +29,7 @@ Gates were fixed before implementation. Hard gates must all pass; soft gates are
 | SG3 False refusals | ≤ 5% | 0% | 10 | 10 |
 | SG4 Citation validity on answered questions | 100% | 100% verified | 10 | 10 |
 | SG5 Latency p95 | ≤ 20 s | 4.4 s | 10 | 10 |
-| SG6 Test coverage | ≥ 85% | 93% (lines, whole package) | 10 | 10 |
+| SG6 Test coverage | ≥ 85% | 95% (lines, whole package) | 10 | 10 |
 | SG7 Interface and accessibility checklist | Pass | Pass, 200% zoom not tested | 10 | 9 |
 | SG8 Cost per question | ≤ USD 0.02 | about USD 0.010 | 5 | 5 |
 | **Total** | | | **100** | **99** |
