@@ -49,6 +49,8 @@ def test_values_calculated_from_cited_numbers_pass() -> None:
     assert verify(difference, SOURCES, "q").ok
     share = draft("Cost 42.18 [S2] of AFE 51.00 [S1] is about 82.7%.", ("S1", "S2"))
     assert verify(share, SOURCES, "q").ok
+    shown = draft("42.18 / 51.00 x 100 = 82.71% [S1, S2]", ("S1", "S2"))
+    assert verify(shown, SOURCES, "q").ok
 
 
 def test_question_numbers_small_counts_codes_and_citations_are_exempt() -> None:
