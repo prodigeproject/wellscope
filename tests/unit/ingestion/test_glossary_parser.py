@@ -76,3 +76,9 @@ def test_read_tables_and_detection_work_on_a_real_docx(tmp_path: Path) -> None:
 
 def test_is_glossary_rejects_documents_without_a_meaning_table() -> None:
     assert not is_glossary([[["Name", "Value"], ["a", "b"]]])
+
+
+def test_a_term_repeated_across_tables_still_gets_unique_ids() -> None:
+    table = [["Abbreviation", "Meaning"], ["X", "X"], ["TD", "Total Depth"]]
+    entries = build_entries([table, table, table])
+    assert len({entry.id for entry in entries}) == len(entries) == 3
