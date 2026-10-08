@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 
+from tests.support.documents import make_catalog_entry
 from wellscope.domain.catalog import CatalogEntry
 from wellscope.retrieval.models import DocumentFilter
 from wellscope.retrieval.temporal import resolve
@@ -9,20 +10,7 @@ from wellscope.retrieval.temporal import resolve
 
 def entry(doc_id: str, doc_type: str, number: int, day: date, start: datetime) -> CatalogEntry:
     hours = 30 if doc_type == "DDR" else 24
-    return CatalogEntry(
-        doc_id=doc_id,
-        doc_type=doc_type,
-        label=f"{doc_type} #{number} ({day})",
-        title="",
-        well="A-1",
-        rig=None,
-        report_number=number,
-        report_date=day,
-        period_start=start,
-        period_end=start + timedelta(hours=hours),
-        quality_status="ok",
-        summary="",
-    )
+    return make_catalog_entry(doc_id, doc_type, number, day, start, hours)
 
 
 DDR_32 = entry("ddr-32", "DDR", 32, date(2026, 7, 19), datetime(2026, 7, 19))

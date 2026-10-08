@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timedelta
 
+from wellscope.domain.catalog import CatalogEntry
 from wellscope.domain.documents import (
     DocumentType,
     FieldValue,
@@ -87,3 +88,22 @@ def make_document() -> ReportDocument:
 
 def make_glossary(*entries: GlossaryEntry) -> Glossary:
     return Glossary(source=SOURCE, entries=list(entries))
+
+
+def make_catalog_entry(
+    doc_id: str, doc_type: str, number: int, day: date, start: datetime, hours: int = 24
+) -> CatalogEntry:
+    return CatalogEntry(
+        doc_id=doc_id,
+        doc_type=doc_type,
+        label=f"{doc_type} #{number} ({day.isoformat()})",
+        title="",
+        well="BARAKUDA-1",
+        rig="NAGA-2",
+        report_number=number,
+        report_date=day,
+        period_start=start,
+        period_end=start + timedelta(hours=hours),
+        quality_status="ok",
+        summary="",
+    )
