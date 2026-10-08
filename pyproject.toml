@@ -79,7 +79,7 @@ max-returns = 6
 convention = "google"
 
 [tool.ruff.lint.isort]
-known-first-party = ["wellscope"]
+known-first-party = ["wellscope", "tests"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "PLR2004", "D100", "D101", "D104", "PLR0913"]
@@ -93,7 +93,8 @@ warn_unreachable = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra --strict-markers --strict-config"
+addopts = "-ra --strict-markers --strict-config --import-mode=importlib"
+pythonpath = ["."]
 markers = [
   "dataset: needs the real dataset in data/raw (skipped when absent)",
   "online: calls the OpenAI API (skipped unless WELLSCOPE_ONLINE_TESTS=1)",
