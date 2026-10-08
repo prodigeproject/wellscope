@@ -20,7 +20,7 @@ similar format by re-running one command.
 | README with prerequisites, install, configuration, run commands, JSON structure with dummy data, dataset and output locations | [README](../README.md) |
 | API key never in the repository; `.env` and `.env.example` | `.gitignore`, pre-commit key guard, `SecretStr` settings |
 | Dataset and parsed JSON not uploaded | `.gitignore` and a pre-commit guard for PDF, DOCX, databases and output JSON |
-| Answers within 3 minutes | p95 4.4 s, maximum 10 s on the golden set ([EVALUATION](EVALUATION.md)) |
+| Answers within 3 minutes | p95 4.6 s, maximum 7.4 s on the golden set ([EVALUATION](EVALUATION.md)) |
 | Documentation of planning and resolution | This document and [RESOLUTION.md](RESOLUTION.md) |
 | Nice to have: a real database | SQLite with FTS5 and stored vectors |
 
