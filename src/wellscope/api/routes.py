@@ -3,6 +3,7 @@ the local ``wellscope ingest`` command, which keeps untrusted files off the netw
 
 from __future__ import annotations
 
+import logging
 import math
 from typing import TYPE_CHECKING, Annotated, Any
 
@@ -33,6 +34,7 @@ from wellscope.retrieval.ports import ReportIndex
 if TYPE_CHECKING:
     from wellscope.api.app import AppState
 
+logger = logging.getLogger(__name__)
 NOT_FOUND = 404
 TOO_MANY_REQUESTS = 429
 UNPROCESSABLE = 422
@@ -125,6 +127,8 @@ async def chat(request: Request, body: ChatBody) -> StreamingResponse:
     limit = state.settings.max_question_chars
     if len(body.question) > limit:
         raise HTTPException(UNPROCESSABLE, f"Questions are limited to {limit} characters.")
+    question_log = {"question": body.question} if state.settings.log_questions else {}
+    logger.info("question received", extra={"chars": len(body.question), **question_log})
     history = tuple(Turn(turn.question, turn.answer) for turn in body.history)
     question = Question(body.question, history, request.state.request_id)
     events = answer_events(state.services.qa, question, state.llm_slots)

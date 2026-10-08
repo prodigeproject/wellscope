@@ -74,6 +74,8 @@ async def _produce(
     try:
         async with slots:
             answer = await asyncio.to_thread(qa.ask, question.text, question.history, on_stage)
+        outcome = {"status": answer.status, "reason": answer.reason, "verified": answer.verified}
+        logger.info("question answered", extra=outcome | {"latency_ms": answer.latency_ms})
         payload = AnswerEvent.of(answer, question.request_id).model_dump(mode="json")
         await queue.put(("answer", payload))
     except Exception:  # last-resort boundary: the stream must end with an event
