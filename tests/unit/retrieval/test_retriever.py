@@ -110,8 +110,10 @@ def test_report_sources_state_the_period_they_cover(tmp_path: Path) -> None:
 
 def test_capitalised_names_found_in_the_reports_are_recognised(tmp_path: Path) -> None:
     found = retriever(tmp_path)
-    assert found.names_corpus_entity("What is the MAASP value?")
-    assert not found.names_corpus_entity("Who is the PRESIDENT?")
+    assert found.names_corpus_entity("Was phase D18 slow?")
+    assert not found.names_corpus_entity("What is the MAASP value?")
+    assert not found.names_corpus_entity("TELL ME A JOKE ABOUT THE DAILY NEWS")
+    assert not found.names_corpus_entity("Who is the PRESIDENT of WELL-Z-9?")
     assert not found.names_corpus_entity("no capitals here")
 
 

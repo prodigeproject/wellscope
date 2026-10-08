@@ -92,7 +92,7 @@ def test_out_of_scope_questions_get_the_canonical_message(tmp_path: Path) -> Non
 def test_names_written_in_the_reports_override_an_out_of_scope_verdict(tmp_path: Path) -> None:
     analysis = {**ANALYSIS, "scope": "out_of_scope", "report_numbers": [], "doc_types": []}
     setup = Setup(tmp_path, analysis)
-    answer = setup.service.ask("How high was the MAASP?")
+    answer = setup.service.ask("How long did phase D18 take?")
     assert setup.answer_model.requests
     assert answer.status == "answered"
 

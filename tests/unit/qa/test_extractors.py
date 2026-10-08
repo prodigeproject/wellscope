@@ -41,6 +41,9 @@ def test_report_references(question: str, numbers: tuple[int, ...], types: tuple
         "Describe wireline Run #1",
         "Apa isi laporan 19 Juli 2026?",
         "laporan 2026-07-19",
+        "Ringkas laporan 3 hari terakhir",
+        "Summarize the reports 2 days before 9 August",
+        "Bandingkan laporan 3 terakhir",
     ],
 )
 def test_numbers_that_are_not_report_numbers_are_ignored(question: str) -> None:
