@@ -7,7 +7,9 @@ from typer.testing import CliRunner
 
 from wellscope.cli import app
 from wellscope.config import Settings
-from wellscope.doctor import run_checks
+from wellscope.doctor import model_checks, run_checks
+from wellscope.errors import ModelError
+from wellscope.llm.fakes import FakeChatModel, HashEmbedder
 
 
 def make_settings(tmp_path: Path, **values: object) -> Settings:
@@ -56,3 +58,18 @@ def test_cli_version_flag_prints_version() -> None:
     result = CliRunner().invoke(app, ["--version"])
     assert result.exit_code == 0
     assert result.output.startswith("wellscope ")
+
+
+def test_model_checks_report_reachable_and_failing_models() -> None:
+    def denied(request: object) -> dict[str, object]:
+        raise ModelError("the configured model is not available", code="model_unavailable")
+
+    checks = model_checks(
+        {"chat": FakeChatModel(lambda request: {"ok": True}), "analyzer": FakeChatModel(denied)},
+        HashEmbedder(),
+    )
+    by_id = {check.id: check for check in checks}
+    assert by_id["model.chat"].ok
+    assert not by_id["model.analyzer"].ok
+    assert "model_unavailable" in by_id["model.analyzer"].detail
+    assert by_id["model.embeddings"].ok
