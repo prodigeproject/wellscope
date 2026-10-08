@@ -5,7 +5,10 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+from wellscope.domain.base import StrictModel
+from wellscope.domain.documents import SCHEMA_VERSION, SourceInfo
 
 GlossaryCategory = Literal["abbreviation", "well_name_part"]
 
@@ -32,3 +35,11 @@ class GlossaryEntry(BaseModel):
     senses: tuple[str, ...] = ()
     category: GlossaryCategory = "abbreviation"
     source_row: int
+
+
+class Glossary(StrictModel):
+    """The glossary knowledge base written to ``glossary.json``."""
+
+    schema_version: str = SCHEMA_VERSION
+    source: SourceInfo
+    entries: list[GlossaryEntry] = Field(default_factory=list)

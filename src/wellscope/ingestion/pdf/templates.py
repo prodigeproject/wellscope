@@ -65,10 +65,15 @@ class SectionSpec(_Spec):
 
 
 class GridSpec(_Spec):
-    """A small grid whose header cells sit directly above their value cells."""
+    """A small grid whose header cells sit directly above their value cells.
+
+    ``rows`` names the field read from each column of each value row; ``null`` skips a column
+    and ``a|b`` splits a ``x / y`` value into two fields.
+    """
 
     name: str
     header: tuple[str, ...]
+    rows: tuple[tuple[str | None, ...], ...] = ()
 
 
 class OperationsSpec(_Spec):

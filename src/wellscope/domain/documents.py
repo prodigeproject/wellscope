@@ -6,7 +6,9 @@ import datetime as dt
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
+
+from wellscope.domain.base import StrictModel
 
 SCHEMA_VERSION = "1.0"
 Severity = Literal["info", "warning", "error"]
@@ -20,11 +22,7 @@ class DocumentType(StrEnum):
     GENERIC = "GENERIC"
 
 
-class _Model(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-
-class ParserInfo(_Model):
+class ParserInfo(StrictModel):
     """Which parser and form template produced the document."""
 
     name: str
@@ -32,7 +30,7 @@ class ParserInfo(_Model):
     template: str | None = None
 
 
-class SourceInfo(_Model):
+class SourceInfo(StrictModel):
     """Provenance of the source file."""
 
     file_name: str
@@ -42,7 +40,7 @@ class SourceInfo(_Model):
     parser: ParserInfo
 
 
-class WellInfo(_Model):
+class WellInfo(StrictModel):
     """Identity of the well and rig the report is about."""
 
     name: str | None = None
@@ -54,7 +52,7 @@ class WellInfo(_Model):
     operator: str | None = None
 
 
-class ReportInfo(_Model):
+class ReportInfo(StrictModel):
     """Report number, date and the operational period it covers."""
 
     number: int | None = None
@@ -63,7 +61,7 @@ class ReportInfo(_Model):
     period_end: dt.datetime | None = None
 
 
-class FieldValue(_Model):
+class FieldValue(StrictModel):
     """One labelled value; ``raw`` is the verbatim source text."""
 
     label: str
@@ -75,7 +73,7 @@ class FieldValue(_Model):
     page: int
 
 
-class Operation(_Model):
+class Operation(StrictModel):
     """One row of the daily operations table."""
 
     seq: int
@@ -93,7 +91,7 @@ class Operation(_Model):
     page: int
 
 
-class TimedNote(_Model):
+class TimedNote(StrictModel):
     """A narrative entry with an optional time range (next-day operations)."""
 
     start: str | None = None
@@ -102,21 +100,21 @@ class TimedNote(_Model):
     page: int
 
 
-class NextDayOperations(_Model):
+class NextDayOperations(StrictModel):
     """Early-morning operations of the following day, appended to the last table row."""
 
     date: dt.date | None = None
     entries: list[TimedNote] = Field(default_factory=list)
 
 
-class Remark(_Model):
+class Remark(StrictModel):
     """A numbered remark."""
 
     number: int
     text: str
 
 
-class Table(_Model):
+class Table(StrictModel):
     """A ruled table read cell by cell; the first ``header_rows`` rows are headers."""
 
     section: str
@@ -125,7 +123,7 @@ class Table(_Model):
     rows: list[list[str]] = Field(default_factory=list)
 
 
-class SectionText(_Model):
+class SectionText(StrictModel):
     """Visible text of a key-value section, line by line."""
 
     section: str
@@ -133,7 +131,7 @@ class SectionText(_Model):
     text: str
 
 
-class PageText(_Model):
+class PageText(StrictModel):
     """Visible text of a page and the share of characters that were visible."""
 
     number: int
@@ -141,7 +139,7 @@ class PageText(_Model):
     visible_ratio: float
 
 
-class QualityCheck(_Model):
+class QualityCheck(StrictModel):
     """Outcome of one data-quality check."""
 
     id: str
@@ -150,7 +148,7 @@ class QualityCheck(_Model):
     detail: str
 
 
-class ReportDocument(_Model):
+class ReportDocument(StrictModel):
     """A parsed report: typed fields, operations, tables, page text and quality checks."""
 
     schema_version: str = SCHEMA_VERSION

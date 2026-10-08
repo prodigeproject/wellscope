@@ -13,6 +13,7 @@ from wellscope.ingestion.pdf.templates import GridSpec, SectionSpec
 ROW_TOLERANCE = 2.0
 EDGE_TOLERANCE = 2.0
 GAP_SPLIT = 40.0
+MIN_TABLE_CELLS = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,6 +121,16 @@ def _breaks(previous: Word, word: Word) -> bool:
 
 def _text_line(words: Sequence[Word]) -> TextLine:
     return TextLine.from_words((word.text, word.x0, word.x1) for word in words)
+
+
+def page_rows(page: PageLayout) -> list[list[str]]:
+    """Every row of two or more non-empty cells on the page (tables of unknown forms)."""
+    rows = []
+    for row in _group_rows(list(page.cells)):
+        texts = [cell_text(page, cell) for cell in row]
+        if sum(1 for text in texts if text) >= MIN_TABLE_CELLS:
+            rows.append(texts)
+    return rows
 
 
 def read_grid(page: PageLayout, spec: GridSpec) -> list[list[str]]:
@@ -248,4 +259,12 @@ def _aligned_row_below(page: PageLayout, row: Sequence[Box]) -> list[Box] | None
     return aligned
 
 
-__all__ = ["Section", "cell_text", "find_sections", "read_grid", "text_blocks", "words_in"]
+__all__ = [
+    "Section",
+    "cell_text",
+    "find_sections",
+    "page_rows",
+    "read_grid",
+    "text_blocks",
+    "words_in",
+]

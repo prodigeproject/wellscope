@@ -68,5 +68,10 @@ sections:
 grids:
   - name: progress_summary
     header: ["Phase", "Days", "Cost", "Depth"]
+    rows:
+      - [phase, days, cost_musd, "depth_mddf|depth_tvdss"]
+      - [null, afe_days, afe_cost_musd, "afe_depth_mddf|afe_depth_tvdss"]
   - name: progress
     header: ["Progress", "Ave. ROP", "MW", "Current Date"]
+    rows:
+      - [progress, avg_rop, mud_weight, report_time]
