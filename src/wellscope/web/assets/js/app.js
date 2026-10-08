@@ -43,6 +43,7 @@ async function loadCatalog() {
       getJSON("/api/glossary"),
     ]);
     state.glossary = glossary.entries;
+    setQuestionLimit(health.max_question_chars);
     renderCatalog(catalog);
     renderGlossary("");
     if (health.status === "no_index") {
@@ -58,6 +59,12 @@ async function loadCatalog() {
     setStatus("Could not reach the WellScope server.", true);
     toast(describeError(error), { error: true });
   }
+}
+
+function setQuestionLimit(limit) {
+  const input = $("composer-input");
+  input.setAttribute("maxlength", String(limit));
+  $("char-count").textContent = `${input.value.length}/${limit}`;
 }
 
 function setStatus(text, warning) {
@@ -176,17 +183,17 @@ function wireComposer() {
   const form = $("composer");
   const input = $("composer-input");
   const count = $("char-count");
-  const limit = Number(input.getAttribute("maxlength"));
   const resize = () => {
     input.style.height = "auto";
     input.style.height = `${input.scrollHeight}px`;
-    count.textContent = `${input.value.length}/${limit}`;
+    count.textContent = `${input.value.length}/${input.getAttribute("maxlength")}`;
   };
   input.addEventListener("input", resize);
   input.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
       event.preventDefault();
-      form.requestSubmit();
+      // While an answer streams, Enter keeps the draft; only the Stop button cancels.
+      if (!state.controller) form.requestSubmit();
     }
   });
   form.addEventListener("submit", (event) => {

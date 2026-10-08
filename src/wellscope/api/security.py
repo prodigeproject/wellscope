@@ -16,7 +16,7 @@ from wellscope.observability import request_id_var
 
 logger = logging.getLogger(__name__)
 
-MAX_BODY_BYTES = 16_384
+MAX_BODY_BYTES = 32_768
 PAYLOAD_TOO_LARGE = 413
 INTERNAL_ERROR = 500
 LENGTH_REQUIRED = 411

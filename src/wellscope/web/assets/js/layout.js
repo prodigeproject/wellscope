@@ -6,6 +6,7 @@ const THEMES = ["system", "light", "dark"];
 const THEME_ICONS = { system: "system", light: "sun", dark: "moon" };
 const THEME_KEY = "wellscope-theme";
 const $ = (id) => document.getElementById(id);
+let reportRequest = 0;
 
 /** Wire layout controls; `onNewChat` runs for the "new conversation" button. */
 export function wireLayout({ onNewChat }) {
@@ -87,6 +88,7 @@ function applyTheme(theme) {
 
 /** Show a whole report in the dialog. */
 export async function openReport(docId) {
+  const ticket = ++reportRequest;
   const dialog = $("report-dialog");
   $("report-title").textContent = "Loading report…";
   $("report-meta").textContent = "";
@@ -94,11 +96,13 @@ export async function openReport(docId) {
   dialog.showModal();
   try {
     const report = await getJSON(`/api/sources/${encodeURIComponent(docId)}`);
+    if (ticket !== reportRequest) return; // a newer report was requested meanwhile
     $("report-title").textContent = report.label;
     $("report-meta").textContent = report.period ? `Covers ${report.period}` : "";
     // Sanitised on the server, like answers.
     $("report-body").innerHTML = report.html;
   } catch (error) {
+    if (ticket !== reportRequest) return;
     $("report-title").textContent = "Report unavailable";
     $("report-body").replaceChildren(el("p", { text: describeError(error) }));
   }

@@ -13,7 +13,6 @@ from wellscope.qa.service import Answer
 
 MAX_QUESTION_CHARS = 4000
 MAX_HISTORY_TURNS = 3
-HISTORY_QUESTION_CHARS = 1000
 HISTORY_ANSWER_CHARS = 1500
 DOC_ID_PATTERN = r"^[a-z0-9][a-z0-9-]{2,79}$"
 MAX_GLOSSARY_QUERY = 64
@@ -26,7 +25,7 @@ class _Request(BaseModel):
 class HistoryTurn(_Request):
     """An earlier question and the answer shown for it (used to resolve follow-ups)."""
 
-    question: str = Field(min_length=1, max_length=HISTORY_QUESTION_CHARS)
+    question: str = Field(min_length=1, max_length=MAX_QUESTION_CHARS)
     answer: str = Field(default="", max_length=HISTORY_ANSWER_CHARS)
 
 
@@ -53,6 +52,7 @@ class HealthResponse(BaseModel):
     documents: int
     glossary_entries: int
     model_configured: bool
+    max_question_chars: int
 
 
 class DocumentOut(BaseModel):

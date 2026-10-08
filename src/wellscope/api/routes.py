@@ -57,6 +57,7 @@ def health(request: Request) -> HealthResponse:
         documents=len(index.catalog()) if available else 0,
         glossary_entries=len(index.glossary()) if available else 0,
         model_configured=state.services.model_configured,
+        max_question_chars=state.settings.max_question_chars,
     )
 
 
