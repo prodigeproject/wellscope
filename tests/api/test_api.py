@@ -154,3 +154,24 @@ def test_question_text_is_logged_only_when_enabled(
             client.post("/api/chat", json=QUESTION)
         record = next(r for r in caplog.records if r.getMessage() == "question received")
         assert (getattr(record, "question", None) == QUESTION["question"]) is enabled
+
+
+class CorruptIndex(SearchIndex):
+    def available(self) -> bool:
+        return True
+
+    def catalog(self) -> list[Any]:
+        raise RuntimeError("database disk image is malformed")
+
+
+def test_unexpected_errors_keep_security_headers_and_the_request_id(tmp_path: Path) -> None:
+    settings = make_settings(tmp_path)
+    with make_client(settings, CorruptIndex(settings.database_path)) as client:
+        response = client.get("/api/health")
+    assert response.status_code == 500
+    error = response.json()["error"]
+    assert error["code"] == "internal_error"
+    assert error["request_id"] == response.headers["x-request-id"]
+    assert "default-src 'self'" in response.headers["content-security-policy"]
+    assert response.headers["cache-control"] == "no-store"
+    assert "malformed" not in response.text
