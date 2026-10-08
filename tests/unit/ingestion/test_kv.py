@@ -55,3 +55,24 @@ def test_extract_pairs_accepts_aliases_and_ignores_case() -> None:
 def test_extract_pairs_keeps_the_first_occurrence_of_a_repeated_label() -> None:
     specs = [LabelSpec("well", ("Well",))]
     assert extract_pairs(["Well: A-1", "Well: A-1 (repeat)"], specs) == {"well": "A-1"}
+
+
+def test_extract_pairs_reads_heading_labels_that_stand_alone_on_a_line() -> None:
+    headings = [
+        LabelSpec("last_24h", ("LAST 24 HRS OPERATION",)),
+        LabelSpec("next_24h", ("NEXT 24 HRS OPERATION",)),
+    ]
+    lines = [
+        "LAST 24 HRS OPERATION",
+        "Pulled out of hole.",
+        "Rigged up wireline.",
+        "NPT: 1.50 hrs due to weather.",
+        "NEXT 24 HRS OPERATION",
+        "Run in hole.",
+    ]
+    pairs = extract_pairs(lines, [LabelSpec("npt", ("NPT",))], headings=headings)
+    assert pairs == {
+        "last_24h": "Pulled out of hole. Rigged up wireline.",
+        "npt": "1.50 hrs due to weather.",
+        "next_24h": "Run in hole.",
+    }
