@@ -32,7 +32,7 @@ def test_parse_number_returns_none_for_non_numbers(text: str) -> None:
 
 def test_number_candidates_accept_english_and_indonesian_conventions() -> None:
     assert number_candidates("250,000.25") == {250000.25}
-    assert number_candidates("348.640,02") == {348640.02}
+    assert number_candidates("250.000,25") == {250000.25}
 
 
 def test_number_candidates_keep_every_reading_of_ambiguous_tokens() -> None:
