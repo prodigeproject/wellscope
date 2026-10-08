@@ -131,8 +131,8 @@ sections:
   - {name: costs, kind: kv, titles: ["COSTS(USD)"]}
   - {name: status, kind: kv, titles: ["STATUS"]}
   - {name: operations, kind: operations, titles: ["OPERATION SUMMARY"]}
-  - {name: bit_data, titles: ["BIT DATA"]}
-  - {name: mud_check, titles: ["MUD CHECK"]}
+  - {name: bit_data, split_lines: true, titles: ["BIT DATA"]}
+  - {name: mud_check, split_lines: true, titles: ["MUD CHECK"]}
   - {name: bha, kind: kv, titles: ["BHA no.#*"]}
   - {name: assembly_components, header_rows: 2, titles: ["Assembly Components"]}
   - {name: gas_readings, kind: kv, titles: ["GAS READINGS"]}
@@ -145,7 +145,7 @@ sections:
   - {name: hydrocyclone, header_rows: 1, titles: ["HYDROCYCLONE"]}
   - {name: lot_fit, header_rows: 1, titles: ["LOT/FIT"]}
   - {name: formation_data, header_rows: 1, titles: ["FORMATION DATA"]}
-  - {name: support_craft, header_rows: 1, titles: ["SUPPORT CRAFT"]}
+  - {name: support_craft, split_lines: true, header_rows: 1, titles: ["SUPPORT CRAFT"]}
   - {name: bulks, header_rows: 1, titles: ["BULKS"]}
   - {name: weather, kind: kv, titles: ["WEATHER"]}
   - {name: safety_cards, header_rows: 1, titles: ["SAFETY CARDS"]}

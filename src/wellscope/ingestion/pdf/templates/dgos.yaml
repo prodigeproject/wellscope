@@ -54,13 +54,13 @@ fields:
 
 sections:
   - {name: operation_update, kind: kv, titles: ["OPERATION UPDATE (0600 - 0600 HRS)"]}
-  - {name: remarks, kind: remarks, full_row: true, titles: ["REMARKS"]}
+  - {name: remarks, split_lines: true, kind: remarks, full_row: true, titles: ["REMARKS"]}
   - {name: casing_shoe, header_rows: 2, titles: ["CASING AND SHOE DEPTH"]}
   - {name: formation_tops, header_rows: 3, titles: ["FORMATION TOPS"]}
   - {name: lithology, header_rows: 2, titles: ["LITHOLOGY"]}
   - {name: gas_show, header_rows: 2, titles: ["GAS SHOW"]}
   - {name: oil_show, header_rows: 3, titles: ["OIL SHOW"]}
-  - {name: mnemonics, titles: ["MNEMONICS - OPERATION"]}
+  - {name: mnemonics, split_lines: true, titles: ["MNEMONICS - OPERATION"]}
 
 grids:
   - name: progress_summary

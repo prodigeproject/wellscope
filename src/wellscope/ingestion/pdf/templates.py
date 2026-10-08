@@ -37,19 +37,24 @@ class FieldSpec(_Spec):
 
 
 class SectionSpec(_Spec):
-    """A titled region of the form; ``titles`` ending in ``*`` match by prefix."""
+    """A titled region of the form; ``titles`` ending in ``*`` match by prefix.
+
+    Titles match case-sensitively so a column header such as ``Remarks`` is not mistaken for
+    the ``REMARKS`` section. ``split_lines`` reads rows that have no ruling between them.
+    """
 
     name: str
     titles: tuple[str, ...]
     kind: SectionKind = "table"
     header_rows: int = 0
     full_row: bool = False
+    split_lines: bool = False
 
     def matches(self, title: str) -> bool:
         """Whether a cell's single line of text is one of this section's titles."""
-        text = _normalise(title)
+        text = _collapse(title)
         for candidate in self.titles:
-            expected = _normalise(candidate.rstrip(PREFIX_MARK))
+            expected = _collapse(candidate.rstrip(PREFIX_MARK))
             if text == expected or (candidate.endswith(PREFIX_MARK) and text.startswith(expected)):
                 return True
         return False
@@ -127,5 +132,5 @@ def parse_template(text: str) -> FormTemplate:
     return FormTemplate.model_validate(yaml.safe_load(text))
 
 
-def _normalise(text: str) -> str:
-    return " ".join(text.split()).casefold()
+def _collapse(text: str) -> str:
+    return " ".join(text.split())

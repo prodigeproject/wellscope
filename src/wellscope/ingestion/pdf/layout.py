@@ -25,6 +25,7 @@ RUN_MAX_KERNING = 0.5
 SAME_BASELINE = 1.0
 VERTICAL_SLACK = 0.5
 MIN_RULE_LENGTH = 2.0
+BORDER_TOLERANCE = 1.5
 TABLE_SETTINGS = {"vertical_strategy": "lines", "horizontal_strategy": "lines"}
 
 
@@ -61,8 +62,10 @@ def load_layout(path: Path, max_pages: int = MAX_PAGES) -> list[PageLayout]:
 
 def _page_layout(number: int, page: Page) -> PageLayout:
     visible, stats = visible_page(page)
+    cells = {Box(*cell) for table in visible.find_tables(TABLE_SETTINGS) for cell in table.cells}
     border_lines = [_rule(line) for line in page.lines if _is_vertical(line)]
-    overflow = _overflow_char_ids(visible.chars, border_lines)
+    inner_borders = _inner_borders(border_lines, cells)
+    overflow = _overflow_char_ids(visible.chars, inner_borders)
     visible = visible.filter(lambda obj: id(obj) not in overflow).dedupe_chars(
         tolerance=DEDUPE_TOLERANCE
     )
@@ -70,17 +73,31 @@ def _page_layout(number: int, page: Page) -> PageLayout:
         x_tolerance=WORD_X_TOLERANCE, y_tolerance=WORD_Y_TOLERANCE, return_chars=True
     )
     edges = [edge for edge in page.edges if _length(edge) >= MIN_RULE_LENGTH]
-    cells = {Box(*cell) for table in visible.find_tables(TABLE_SETTINGS) for cell in table.cells}
     return PageLayout(
         number=number,
         width=float(page.width),
         height=float(page.height),
-        words=tuple(part for word in words for part in _split_at_borders(word, border_lines)),
+        words=tuple(part for word in words for part in _split_at_borders(word, inner_borders)),
         cells=tuple(sorted(cells, key=lambda box: (box.top, box.x0))),
         vertical_rules=tuple(_rule(edge) for edge in edges if edge["orientation"] == "v"),
         horizontal_rules=tuple(_rule(edge) for edge in edges if edge["orientation"] == "h"),
         visibility=stats,
     )
+
+
+def _inner_borders(lines: Sequence[Rule], cells: set[Box]) -> list[Rule]:
+    """Border segments with a neighbouring cell on their right; text is clipped only there.
+
+    An outer table frame has no cell beyond it, and reports let text run past it unclipped.
+    """
+    return [
+        Rule(line.x0, line.x1, max(line.top, cell.top), min(line.bottom, cell.bottom))
+        for line in lines
+        for cell in cells
+        if abs(cell.x0 - line.x0) <= BORDER_TOLERANCE
+        and cell.top < line.bottom
+        and cell.bottom > line.top
+    ]
 
 
 def _overflow_char_ids(chars: Iterable[dict[str, Any]], borders: Sequence[Rule]) -> set[int]:
