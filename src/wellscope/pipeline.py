@@ -52,7 +52,17 @@ class _Collected:
     notes: list[str] = field(default_factory=list)
 
 
-Projector = Callable[[Sequence[ReportDocument], Glossary | None, str], list[str]]
+@dataclass(frozen=True)
+class ParsedCorpus:
+    """Parse results handed to the index projector."""
+
+    documents: Sequence[ReportDocument]
+    glossary: Glossary | None
+    quality: QualityReport
+    index_version: str
+
+
+Projector = Callable[[ParsedCorpus], list[str]]
 
 
 def run_ingest(settings: Settings, project: Projector | None = None) -> IngestResult:
@@ -81,7 +91,8 @@ def run_ingest(settings: Settings, project: Projector | None = None) -> IngestRe
     store.write_quality_report(quality)
     store.write_manifest(manifest)
     if project is not None:
-        collected.notes.extend(project(documents, collected.glossary, manifest.index_version))
+        corpus = ParsedCorpus(documents, collected.glossary, quality, manifest.index_version)
+        collected.notes.extend(project(corpus))
     return IngestResult(manifest, quality, perf_counter() - started, collected.notes)
 
 

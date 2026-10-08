@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from wellscope import __version__
+from wellscope.bootstrap import index_projector
 from wellscope.config import get_settings
 from wellscope.doctor import run_checks
 from wellscope.observability import configure_logging
@@ -55,11 +56,11 @@ def doctor(
 
 @app.command()
 def ingest() -> None:
-    """Parse every PDF and DOCX under the data folder into JSON (re-run after adding files)."""
+    """Parse every PDF and DOCX under the data folder, then rebuild the search index."""
     settings = get_settings()
     configure_logging("WARNING")
     console.print(f"Ingesting [bold]{settings.data_dir}[/] -> [bold]{settings.output_dir}[/]")
-    _print_ingest(run_ingest(settings))
+    _print_ingest(run_ingest(settings, index_projector(settings)))
 
 
 def _print_ingest(result: IngestResult) -> None:
