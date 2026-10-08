@@ -1,6 +1,6 @@
 [project]
 name = "wellscope"
-version = "0.1.0"
+version = "1.0.0"
 description = "Grounded Q&A assistant for daily drilling and geological well reports."
 readme = "README.md"
 license = "MIT"

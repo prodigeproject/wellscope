@@ -89,6 +89,14 @@ def test_out_of_scope_questions_get_the_canonical_message(tmp_path: Path) -> Non
     assert setup.answer_model.requests == []
 
 
+def test_names_written_in_the_reports_override_an_out_of_scope_verdict(tmp_path: Path) -> None:
+    analysis = {**ANALYSIS, "scope": "out_of_scope", "report_numbers": [], "doc_types": []}
+    setup = Setup(tmp_path, analysis)
+    answer = setup.service.ask("How long did phase D18 take?")
+    assert setup.answer_model.requests
+    assert answer.status == "answered"
+
+
 def test_questions_about_missing_reports_list_the_available_ones(tmp_path: Path) -> None:
     setup = Setup(tmp_path, {**ANALYSIS, "report_numbers": [99]})
     answer = setup.service.ask("What was the daily cost in DDR 99?")
@@ -143,3 +151,17 @@ def test_setup_problems_return_guidance(tmp_path: Path, missing: str) -> None:
     assert answer.reason == ("no_index" if missing == "index" else "no_api_key")
     kind = MessageKind.NO_INDEX if missing == "index" else MessageKind.NO_API_KEY
     assert answer.markdown == message(kind, Language.ID)
+
+
+def test_an_answer_that_still_cites_nothing_after_the_retry_is_not_shown(
+    tmp_path: Path,
+) -> None:
+    def uncited(request: ChatRequest) -> dict[str, Any]:
+        text = "The well was drilled safely and on budget."
+        return {"status": "answered", "answer_markdown": text, "citations": [], "caveats": []}
+
+    setup = Setup(tmp_path, ANALYSIS, uncited)
+    answer = setup.service.ask("How did the drilling go in DDR 12?")
+    assert len(setup.answer_model.requests) == 2
+    assert answer.status == "not_found"
+    assert answer.reason == "uncited"

@@ -24,13 +24,18 @@ DOC_TYPES = {
 }
 _MONTH_NAMES = "|".join(sorted(MONTHS, key=len, reverse=True))
 _NUMBER = r"\d{1,3}"
+# "laporan 3 hari terakhir", "reports 2 days before": a count of days or reports, not a number.
+_NOT_A_NUMBER_AFTER = (
+    r"hari|minggu|bulan|tahun|jam|menit|days?|weeks?|months?|years?|hours?|hrs?|minutes?"
+    r"|terakhir|terbaru|pertama|sebelumnya|last|latest|first|previous"
+)
 _JOINER = r"\s*(?:,|&|and|dan|or|atau|vs\.?|versus|with|dengan)\s*(?:(?:DDR|DGOS)\s*)?#?\s*"
 _REPORT_REFERENCE = re.compile(
     r"\b(?:DDR|DGOS|reports?|laporan|rpt)\b\.?\s*"
     r"(?:(?:no|nr|number|nomor|nomer)\.?\s*|ke-?\s*|#\s*)?"
     rf"(?P<numbers>{_NUMBER}(?:{_JOINER}{_NUMBER})*)"
-    # not the start of a date such as "19 Juli", "19/07" or "2026-07-19"
-    rf"(?!\d|\s*[/.:-]\s*\d|\s+(?:{_MONTH_NAMES})\b)",
+    # not the start of a date ("19 Juli", "19/07", "2026-07-19") nor a count of days or reports
+    rf"(?!\d|\s*[/.:-]\s*\d|\s+(?:{_MONTH_NAMES}|{_NOT_A_NUMBER_AFTER})\b)",
     re.IGNORECASE,
 )
 _LATEST = re.compile(

@@ -1,0 +1,53 @@
+# Example golden set with DUMMY data, showing the format of evals/private/golden.yaml.
+# The real set contains facts from the dataset and is kept out of the repository.
+#
+# expect.status: answered | not_found | out_of_scope
+#                refused  (not_found or out_of_scope)
+#                grounded (answered or not_found: either is honest, e.g. a blank field)
+# must_include: every value must appear; numbers and dates match in any notation
+#               (250,000.00 = 250.000,00; 14/01/2026 = 14 Januari 2026), text ignores case.
+# must_include_any: at least one value of each group must appear.
+# must_cite_docs: the answer must cite these documents (report ids, or "glossary").
+
+- id: G-001
+  lang: en
+  category: glossary
+  question: What does ABC stand for?
+  expect:
+    status: answered
+    must_include: ["Alpha Beta Charlie"]
+    must_cite_docs: [glossary]
+
+- id: D-001
+  lang: id
+  category: report_fact
+  question: Berapa daily cost pada DDR report no. 12?
+  expect:
+    status: answered
+    must_include: ["250,000.00"]
+    must_cite_docs: [ddr-well-a-1-0012]
+
+- id: X-001
+  lang: en
+  category: cross
+  question: And in report 13?
+  history:
+    - question: What was the daily cost in DDR 12?
+      answer: The daily cost was 250,000.00 USD [S1].
+  expect:
+    status: answered
+    must_include: ["260,000.00"]
+
+- id: N-001
+  lang: id
+  category: not_found
+  question: Berapa daily cost DDR 99?
+  expect:
+    status: not_found
+
+- id: R-001
+  lang: id
+  category: out_of_scope
+  question: Siapa presiden Indonesia saat ini?
+  expect:
+    status: out_of_scope

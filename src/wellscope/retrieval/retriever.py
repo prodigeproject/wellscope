@@ -1,17 +1,20 @@
 """Retrieval orchestration: resolve the reports, then gather glossary, catalog and report sources.
 
 Order in the context: glossary entries, the report catalog, cross-report conflicts, then report
-passages. Reports that fit the token budget are given in full (no retrieval miss is possible);
-larger sets fall back to hybrid search within the resolved reports.
+passages. Reports that fit the token budget are given in full (no retrieval miss is possible),
+with the best search matches moved to the front; larger sets fall back to hybrid search within
+the resolved reports.
 """
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping, Sequence
 
 from wellscope.domain.catalog import CatalogEntry, ChunkRecord
 from wellscope.domain.chunks import GLOSSARY_DOC_ID
 from wellscope.domain.rendering import glossary_passage
+from wellscope.domain.text import search_terms
 from wellscope.retrieval.cards import catalog_card, conflict_card
 from wellscope.retrieval.context import SourceBuilder, estimate_tokens
 from wellscope.retrieval.glossary_index import GlossaryHit, GlossaryIndex
@@ -29,12 +32,17 @@ from wellscope.retrieval.temporal import resolve
 GLOSSARY_LIMIT = 8
 SEARCH_LIMIT = 16
 USAGE_EXAMPLES = 3
+FOCUS_LIMIT = 8
 CATALOG_INTENTS = frozenset({Intent.COMPARISON, Intent.AGGREGATION, Intent.CATALOG})
 CATALOG_DOC_ID = "catalog"
 CONFLICTS_DOC_ID = "conflicts"
 GLOSSARY_LABEL = "Glossary"
 CATALOG_LABEL = "Report catalog"
 CONFLICTS_LABEL = "Data conflicts"
+
+# Code-like names as reports write them: PLATFORM-C, K-28, RIG-2, D18. Plain capitalised
+# words are not enough (a question typed in capitals would otherwise count as a domain signal).
+_NAME = re.compile(r"\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+\b|\b[A-Z]+\d[A-Z0-9]*\b")
 
 Reports = Mapping[str, CatalogEntry]
 
@@ -57,6 +65,14 @@ class Retriever:
             if hit is not None:
                 hits.setdefault(hit.entry.id, hit)
         return list(hits.values())
+
+    def names_corpus_entity(self, text: str) -> bool:
+        """Whether ``text`` names something written in the reports (``PLATFORM-C``, ``K-28``)."""
+        names = list(dict.fromkeys(_NAME.findall(text)))
+        if not names:
+            return False
+        report_ids = [entry.doc_id for entry in self._index.catalog()]
+        return bool(self._index.keyword_search(search_terms(" ".join(names)), report_ids, 1))
 
     def retrieve(self, query: RetrievalQuery) -> Retrieval:
         """Sources for ``query``."""
@@ -91,6 +107,8 @@ class Retriever:
     ) -> RetrievalMode:
         doc_ids = [entry.doc_id for entry in entries]
         if query.intent is Intent.CATALOG:
+            found = self._search.search(query.texts, doc_ids, FOCUS_LIMIT)
+            _add_chunks(builder, self._index.chunks(found), reports)
             return "catalog"
         if query.intent is Intent.GLOSSARY:
             if not has_glossary:
@@ -102,7 +120,10 @@ class Retriever:
         position = {doc_id: rank for rank, doc_id in enumerate(doc_ids)}
         chunks = sorted(self._index.document_chunks(doc_ids), key=lambda c: position[c.doc_id])
         if sum(estimate_tokens(chunk.text) for chunk in chunks) <= builder.remaining:
-            _add_chunks(builder, chunks, reports)
+            # The best matches go first so they are not lost in the middle of a long context;
+            # the builder skips them when the full reports follow.
+            focus = self._index.chunks(self._search.search(query.texts, doc_ids, FOCUS_LIMIT))
+            _add_chunks(builder, [*focus, *chunks], reports)
             return "full"
         ranked = self._search.search(query.texts, doc_ids, SEARCH_LIMIT)
         _add_chunks(builder, self._index.chunks(ranked), reports)

@@ -9,7 +9,7 @@ import hashlib
 import logging
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from time import perf_counter
 
 from wellscope.config import Settings
@@ -24,7 +24,7 @@ from wellscope.domain.catalog import (
 from wellscope.domain.chunks import CHUNK_FORMAT_VERSION
 from wellscope.domain.documents import ReportDocument
 from wellscope.domain.glossary import Glossary
-from wellscope.errors import WellScopeError
+from wellscope.errors import ConfigurationError, IngestionError, WellScopeError
 from wellscope.ingestion.discover import Rejected, SourceFile, discover
 from wellscope.ingestion.parse import PARSER_VERSION, parse_glossary, parse_pdf
 from wellscope.ingestion.quality import cross_document_findings, document_status
@@ -67,9 +67,19 @@ Projector = Callable[[ParsedCorpus], list[str]]
 
 
 def run_ingest(settings: Settings, project: Projector | None = None) -> IngestResult:
-    """Parse ``settings.data_dir`` into ``settings.output_dir``; optionally build the index."""
+    """Parse ``settings.data_dir`` into ``settings.output_dir``; optionally build the index.
+
+    A missing data folder, or one without a single PDF or DOCX, is an error that leaves the
+    previous outputs untouched (a mistyped path must not wipe a working index).
+    """
     started = perf_counter()
+    if not settings.data_dir.is_dir():
+        message = f"data folder {settings.data_dir} does not exist"
+        raise ConfigurationError(message, code="data_dir_missing")
     collected = _collect(settings)
+    if not (collected.documents or collected.glossary or collected.quarantined):
+        message = f"no PDF or DOCX files in {settings.data_dir}; outputs left unchanged"
+        raise IngestionError(message, code="no_sources")
     documents = _unique_ids(collected.documents)
     store = JsonStore(settings.output_dir)
     paths = {document.doc_id: store.write_document(document) for document in documents}
@@ -136,9 +146,13 @@ def _unique_ids(documents: Sequence[ReportDocument]) -> list[ReportDocument]:
         elif existing.source.sha256 != document.source.sha256:
             doc_id = f"{document.doc_id}-{document.source.sha256[:8]}"
             unique[doc_id] = document.model_copy(update={"doc_id": doc_id})
-    return sorted(
-        unique.values(), key=lambda doc: (doc.doc_type.value, doc.report.date or doc.doc_id)
-    )
+    return sorted(unique.values(), key=_report_order)
+
+
+def _report_order(document: ReportDocument) -> tuple[str, bool, date, str]:
+    """By type, then date (undated reports last), then id."""
+    day = document.report.date
+    return document.doc_type.value, day is None, day or date.min, document.doc_id
 
 
 def _document_quality(document: ReportDocument) -> DocumentQuality:

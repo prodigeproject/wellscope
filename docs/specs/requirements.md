@@ -101,7 +101,8 @@ answerable.*
    horizontal scrolling at 375 px width.
 
 ### FR-8 Command line
-1. THE CLI SHALL provide `ingest`, `serve`, `ask`, `eval`, `uat`, `doctor` and `schema` commands.
+1. THE CLI SHALL provide `ingest`, `serve`, `ask`, `eval`, `doctor` and `schema` commands.
+   (A `uat` command was planned and deferred: acceptance is documented in `docs/UAT.md`, TD-04.)
 2. WHEN `doctor` runs, THE CLI SHALL report configuration, model access, data directories and
    index freshness without printing secrets.
 

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from functools import partial
 
 from wellscope.ingestion.pdf.geometry import Box, Word, cluster_lines, words_in
+from wellscope.ingestion.pdf.headers import Header, table_header
 from wellscope.ingestion.pdf.kv import TextLine
 from wellscope.ingestion.pdf.layout import PageLayout
 from wellscope.ingestion.pdf.templates import GridSpec, SectionSpec
@@ -36,14 +38,22 @@ class Section:
 
     def rows(self) -> list[list[str]]:
         """Cell texts of the region, grouped into rows and ordered left to right."""
-        cells = [cell for cell in self.page.cells if _centre_in(cell, self.region)]
         rows: list[list[str]] = []
-        for row in _group_rows(cells):
+        for row in self._cell_rows():
             if self.spec.split_lines:
                 rows.extend(_line_rows(self.page, row))
             else:
                 rows.append([cell_text(self.page, cell) for cell in row])
         return [row for row in rows if any(row)]
+
+    def header(self) -> Header:
+        """Header rows and the full name of every column (see ``headers.table_header``)."""
+        if self.spec.split_lines:
+            return Header(0, ())
+        return table_header(self._cell_rows(), self.spec.header_rows, partial(cell_text, self.page))
+
+    def _cell_rows(self) -> list[list[Box]]:
+        return _group_rows([cell for cell in self.page.cells if _centre_in(cell, self.region)])
 
 
 def cell_text(page: PageLayout, cell: Box) -> str:

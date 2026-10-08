@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -7,7 +8,9 @@ from typer.testing import CliRunner
 
 from wellscope.cli import app
 from wellscope.config import Settings
-from wellscope.doctor import run_checks
+from wellscope.doctor import model_checks, run_checks
+from wellscope.errors import ModelError
+from wellscope.llm.fakes import FakeChatModel, HashEmbedder
 
 
 def make_settings(tmp_path: Path, **values: object) -> Settings:
@@ -52,7 +55,38 @@ def test_doctor_flags_missing_index(tmp_path: Path) -> None:
     assert "wellscope ingest" in detail
 
 
+def test_doctor_flags_sources_changed_since_the_last_ingest(tmp_path: Path) -> None:
+    settings = make_settings(tmp_path)
+    settings.data_dir.mkdir(parents=True)
+    settings.output_dir.mkdir(parents=True)
+    settings.database_path.write_bytes(b"index")
+    source = settings.data_dir / "new.pdf"
+    source.write_bytes(b"%PDF-1.4")
+    index_time = settings.database_path.stat().st_mtime
+    os.utime(source, (index_time + 60, index_time + 60))
+    ok, detail = checks_by_id(settings)["index"]
+    assert ok is False
+    assert "changed since the last ingest" in detail
+    os.utime(source, (index_time - 60, index_time - 60))
+    assert checks_by_id(settings)["index"][0] is True
+
+
 def test_cli_version_flag_prints_version() -> None:
     result = CliRunner().invoke(app, ["--version"])
     assert result.exit_code == 0
     assert result.output.startswith("wellscope ")
+
+
+def test_model_checks_report_reachable_and_failing_models() -> None:
+    def denied(request: object) -> dict[str, object]:
+        raise ModelError("the configured model is not available", code="model_unavailable")
+
+    checks = model_checks(
+        {"chat": FakeChatModel(lambda request: {"ok": True}), "analyzer": FakeChatModel(denied)},
+        HashEmbedder(),
+    )
+    by_id = {check.id: check for check in checks}
+    assert by_id["model.chat"].ok
+    assert not by_id["model.analyzer"].ok
+    assert "model_unavailable" in by_id["model.analyzer"].detail
+    assert by_id["model.embeddings"].ok

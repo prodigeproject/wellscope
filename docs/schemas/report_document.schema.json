@@ -1,0 +1,739 @@
+{
+  "$defs": {
+    "DocumentType": {
+      "description": "Report families recognised by content signature.",
+      "enum": [
+        "DDR",
+        "DGOS",
+        "GENERIC"
+      ],
+      "title": "DocumentType",
+      "type": "string"
+    },
+    "FieldValue": {
+      "additionalProperties": false,
+      "description": "One labelled value; ``raw`` is the verbatim source text.",
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "section": {
+          "title": "Section",
+          "type": "string"
+        },
+        "raw": {
+          "title": "Raw",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        },
+        "page": {
+          "title": "Page",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "label",
+        "section",
+        "raw",
+        "page"
+      ],
+      "title": "FieldValue",
+      "type": "object"
+    },
+    "NextDayOperations": {
+      "additionalProperties": false,
+      "description": "Early-morning operations of the following day, appended to the last table row.",
+      "properties": {
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        },
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/TimedNote"
+          },
+          "title": "Entries",
+          "type": "array"
+        }
+      },
+      "title": "NextDayOperations",
+      "type": "object"
+    },
+    "Operation": {
+      "additionalProperties": false,
+      "description": "One row of the daily operations table.",
+      "properties": {
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        },
+        "start": {
+          "title": "Start",
+          "type": "string"
+        },
+        "end": {
+          "title": "End",
+          "type": "string"
+        },
+        "hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hours"
+        },
+        "phase_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Phase Code"
+        },
+        "activity_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Activity Code"
+        },
+        "productive_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Productive Code"
+        },
+        "npt": {
+          "default": false,
+          "title": "Npt",
+          "type": "boolean"
+        },
+        "rig_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rig Status"
+        },
+        "md_from_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Md From M"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "page": {
+          "title": "Page",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seq",
+        "start",
+        "end",
+        "description",
+        "page"
+      ],
+      "title": "Operation",
+      "type": "object"
+    },
+    "PageText": {
+      "additionalProperties": false,
+      "description": "Visible text of a page and the share of characters that were visible.",
+      "properties": {
+        "number": {
+          "title": "Number",
+          "type": "integer"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "visible_ratio": {
+          "title": "Visible Ratio",
+          "type": "number"
+        }
+      },
+      "required": [
+        "number",
+        "text",
+        "visible_ratio"
+      ],
+      "title": "PageText",
+      "type": "object"
+    },
+    "ParserInfo": {
+      "additionalProperties": false,
+      "description": "Which parser and form template produced the document.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        },
+        "template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Template"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "ParserInfo",
+      "type": "object"
+    },
+    "QualityCheck": {
+      "additionalProperties": false,
+      "description": "Outcome of one data-quality check.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "ok": {
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "detail": {
+          "title": "Detail",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "ok",
+        "severity",
+        "detail"
+      ],
+      "title": "QualityCheck",
+      "type": "object"
+    },
+    "Remark": {
+      "additionalProperties": false,
+      "description": "A numbered remark.",
+      "properties": {
+        "number": {
+          "title": "Number",
+          "type": "integer"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "number",
+        "text"
+      ],
+      "title": "Remark",
+      "type": "object"
+    },
+    "ReportInfo": {
+      "additionalProperties": false,
+      "description": "Report number, date and the operational period it covers.",
+      "properties": {
+        "number": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Number"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        },
+        "period_start": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Period Start"
+        },
+        "period_end": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Period End"
+        }
+      },
+      "title": "ReportInfo",
+      "type": "object"
+    },
+    "SectionText": {
+      "additionalProperties": false,
+      "description": "Visible text of a key-value section, line by line.",
+      "properties": {
+        "section": {
+          "title": "Section",
+          "type": "string"
+        },
+        "page": {
+          "title": "Page",
+          "type": "integer"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "section",
+        "page",
+        "text"
+      ],
+      "title": "SectionText",
+      "type": "object"
+    },
+    "SourceInfo": {
+      "additionalProperties": false,
+      "description": "Provenance of the source file.",
+      "properties": {
+        "file_name": {
+          "title": "File Name",
+          "type": "string"
+        },
+        "relative_path": {
+          "title": "Relative Path",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "page_count": {
+          "title": "Page Count",
+          "type": "integer"
+        },
+        "parser": {
+          "$ref": "#/$defs/ParserInfo"
+        }
+      },
+      "required": [
+        "file_name",
+        "relative_path",
+        "sha256",
+        "page_count",
+        "parser"
+      ],
+      "title": "SourceInfo",
+      "type": "object"
+    },
+    "Table": {
+      "additionalProperties": false,
+      "description": "A ruled table read cell by cell; the first ``header_rows`` rows are headers.\n\n``columns`` names every column with its full header (``Prognosis Depth m TVDSS``), combining\nmulti-row headers and cells that span several columns; it is empty without a header.",
+      "properties": {
+        "section": {
+          "title": "Section",
+          "type": "string"
+        },
+        "page": {
+          "title": "Page",
+          "type": "integer"
+        },
+        "header_rows": {
+          "default": 0,
+          "title": "Header Rows",
+          "type": "integer"
+        },
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Columns",
+          "type": "array"
+        },
+        "rows": {
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Rows",
+          "type": "array"
+        }
+      },
+      "required": [
+        "section",
+        "page"
+      ],
+      "title": "Table",
+      "type": "object"
+    },
+    "TimedNote": {
+      "additionalProperties": false,
+      "description": "A narrative entry with an optional time range (next-day operations).",
+      "properties": {
+        "start": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "page": {
+          "title": "Page",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "description",
+        "page"
+      ],
+      "title": "TimedNote",
+      "type": "object"
+    },
+    "WellInfo": {
+      "additionalProperties": false,
+      "description": "Identity of the well and rig the report is about.",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "wellbore": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Wellbore"
+        },
+        "field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Field"
+        },
+        "block": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Block"
+        },
+        "region": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Region"
+        },
+        "rig": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rig"
+        },
+        "operator": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operator"
+        }
+      },
+      "title": "WellInfo",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A parsed report: typed fields, operations, tables, page text and quality checks.",
+  "properties": {
+    "schema_version": {
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "doc_id": {
+      "title": "Doc Id",
+      "type": "string"
+    },
+    "doc_type": {
+      "$ref": "#/$defs/DocumentType"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/SourceInfo"
+    },
+    "well": {
+      "$ref": "#/$defs/WellInfo"
+    },
+    "report": {
+      "$ref": "#/$defs/ReportInfo"
+    },
+    "fields": {
+      "additionalProperties": {
+        "$ref": "#/$defs/FieldValue"
+      },
+      "title": "Fields",
+      "type": "object"
+    },
+    "operations": {
+      "items": {
+        "$ref": "#/$defs/Operation"
+      },
+      "title": "Operations",
+      "type": "array"
+    },
+    "next_day": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/NextDayOperations"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "remarks": {
+      "items": {
+        "$ref": "#/$defs/Remark"
+      },
+      "title": "Remarks",
+      "type": "array"
+    },
+    "tables": {
+      "items": {
+        "$ref": "#/$defs/Table"
+      },
+      "title": "Tables",
+      "type": "array"
+    },
+    "sections": {
+      "items": {
+        "$ref": "#/$defs/SectionText"
+      },
+      "title": "Sections",
+      "type": "array"
+    },
+    "pages": {
+      "items": {
+        "$ref": "#/$defs/PageText"
+      },
+      "title": "Pages",
+      "type": "array"
+    },
+    "quality": {
+      "items": {
+        "$ref": "#/$defs/QualityCheck"
+      },
+      "title": "Quality",
+      "type": "array"
+    }
+  },
+  "required": [
+    "doc_id",
+    "doc_type",
+    "title",
+    "source"
+  ],
+  "title": "ReportDocument",
+  "type": "object"
+}

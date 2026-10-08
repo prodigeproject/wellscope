@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from tests.support.documents import make_document
-from wellscope.domain.documents import ReportDocument
+from wellscope.domain.documents import ReportDocument, Table
 from wellscope.domain.glossary import GlossaryEntry, GlossaryStatus
 from wellscope.domain.rendering import (
     catalog_summary,
@@ -104,3 +104,23 @@ def test_operation_totals_follow_the_operations() -> None:
     assert kinds.index("totals") == kinds.index("operation") + 1
     totals = passages_by_kind(make_document())["totals"][0]
     assert "- NPT: 2.75 h (16:15–19:00)" in totals
+
+
+def test_tables_with_flattened_columns_render_them_as_the_header() -> None:
+    table = Table(
+        section="casing",
+        page=1,
+        header_rows=1,
+        columns=["HOLE", "SHOE m"],
+        rows=[["HOLE", "SHOE"], ["17-1/2", "1500.50"]],
+    )
+    document = make_document().model_copy(update={"tables": [table]})
+    body = passages_by_kind(document)["table"][0]
+    assert body.splitlines() == ["| HOLE | SHOE m |", "| --- | --- |", "| 17-1/2 | 1500.50 |"]
+
+
+def test_glossary_passage_without_expansion_gives_the_description() -> None:
+    entry = GlossaryEntry(
+        id="gl-bb", term="BB", aliases=("BB",), description="Field name.", source_row=2
+    )
+    assert glossary_passage(entry).body == "BB: Field name."

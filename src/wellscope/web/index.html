@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <meta name="description" content="Grounded answers about daily drilling and geological well reports.">
+    <title>WellScope · Well report assistant</title>
+    <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/tokens.css">
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/components.css">
+    <script type="module" src="/assets/js/app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#composer-input">Skip to the question box</a>
+    <div class="app" id="app">
+      <header class="topbar">
+        <button class="icon-button topbar__menu" type="button" data-action="toggle-sidebar"
+          data-icon="menu" aria-controls="sidebar" aria-expanded="false"
+          aria-label="Show reports and glossary"></button>
+        <a class="brand" href="/" aria-label="WellScope home">
+          <img class="brand__mark" src="/assets/img/favicon.svg" alt="" width="28" height="28">
+          <span class="brand__name">WellScope</span>
+        </a>
+        <p class="topbar__status" id="index-status">Loading reports…</p>
+        <div class="topbar__actions">
+          <button class="icon-button" type="button" data-action="new-chat" data-icon="plus"
+            aria-label="Start a new conversation" title="New conversation"></button>
+          <button class="icon-button" type="button" data-action="cycle-theme" data-icon="theme"
+            aria-label="Theme: system" title="Theme: system"></button>
+          <button class="icon-button topbar__sources" type="button" data-action="toggle-sources"
+            data-icon="book" aria-controls="sources" aria-expanded="false"
+            aria-label="Show sources"></button>
+        </div>
+      </header>
+
+      <nav class="sidebar drawer" id="sidebar" aria-label="Reports and glossary">
+        <div class="tabs" role="tablist" aria-label="Knowledge">
+          <button class="tabs__tab" type="button" role="tab" id="tab-reports"
+            aria-controls="panel-reports" aria-selected="true">Reports</button>
+          <button class="tabs__tab" type="button" role="tab" id="tab-glossary"
+            aria-controls="panel-glossary" aria-selected="false" tabindex="-1">Glossary</button>
+        </div>
+        <section class="tabs__panel" id="panel-reports" role="tabpanel" aria-labelledby="tab-reports">
+          <ul class="report-list" id="report-list" aria-label="Indexed reports"></ul>
+        </section>
+        <section class="tabs__panel" id="panel-glossary" role="tabpanel"
+          aria-labelledby="tab-glossary" hidden>
+          <label class="visually-hidden" for="glossary-search">Search the glossary</label>
+          <input class="input" id="glossary-search" type="search" maxlength="64"
+            autocomplete="off" placeholder="Search terms…">
+          <p class="sidebar__hint" id="glossary-count" aria-live="polite"></p>
+          <ul class="glossary-list" id="glossary-list" aria-label="Glossary terms"></ul>
+        </section>
+      </nav>
+
+      <main class="chat" id="main">
+        <div class="thread" id="thread" role="log" aria-label="Conversation" aria-relevant="additions">
+          <section class="empty-state" id="empty-state" aria-labelledby="empty-title">
+            <h1 class="empty-state__title" id="empty-title">Ask the well reports</h1>
+            <p class="empty-state__lead">
+              Answers come only from the ingested daily drilling reports (DDR), geological
+              summaries (DGOS) and the glossary, with a citation for every fact.
+            </p>
+            <h2 class="empty-state__label">Try asking</h2>
+            <ul class="suggestions" id="suggestions"></ul>
+            <p class="empty-state__note">
+              Questions outside these documents get a polite refusal instead of a guess.
+            </p>
+          </section>
+        </div>
+        <p class="visually-hidden" id="progress-status" aria-live="polite"></p>
+        <form class="composer" id="composer" novalidate>
+          <label class="visually-hidden" for="composer-input">Your question</label>
+          <textarea class="composer__input" id="composer-input" rows="1" maxlength="1000"
+            placeholder="Ask about the well reports…"
+            aria-describedby="composer-help"></textarea>
+          <div class="composer__footer">
+            <span class="composer__help" id="composer-help">
+              Enter to send · Shift+Enter for a new line
+            </span>
+            <span class="composer__count" id="char-count" aria-live="off">0/1000</span>
+            <button class="button button--primary" type="submit" id="send-button">
+              <span class="button__label">Ask</span>
+            </button>
+          </div>
+        </form>
+      </main>
+
+      <aside class="sources drawer" id="sources" aria-labelledby="sources-title">
+        <header class="sources__header">
+          <h2 class="sources__title" id="sources-title">Sources</h2>
+          <button class="icon-button sources__close" type="button" data-action="toggle-sources"
+            data-icon="close" aria-label="Close sources"></button>
+        </header>
+        <div class="sources__body" id="source-list">
+          <p class="sources__empty">Select a citation in an answer to see the exact passage here.</p>
+        </div>
+      </aside>
+      <div class="backdrop" id="backdrop" hidden></div>
+    </div>
+
+    <dialog class="report-dialog" id="report-dialog" aria-labelledby="report-title">
+      <header class="report-dialog__header">
+        <div>
+          <h2 class="report-dialog__title" id="report-title">Report</h2>
+          <p class="report-dialog__meta" id="report-meta"></p>
+        </div>
+        <button class="icon-button" type="button" data-action="close-report" data-icon="close"
+          aria-label="Close report"></button>
+      </header>
+      <div class="report-dialog__body prose" id="report-body"></div>
+    </dialog>
+
+    <div class="toasts" id="toasts" role="status" aria-live="assertive"></div>
+  </body>
+</html>

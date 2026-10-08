@@ -15,7 +15,7 @@ from typing import Literal
 from wellscope.domain.messages import Language, MessageKind, message, not_found
 from wellscope.errors import ModelError
 from wellscope.llm.ports import ChatResult
-from wellscope.qa.analyzer import Analysis, Analyzer, Turn
+from wellscope.qa.analyzer import Analysis, Analyzer, Scope, Turn
 from wellscope.qa.answerer import Answerer, Draft
 from wellscope.qa.extractors import clean_question, detect_language
 from wellscope.qa.html import render_answer
@@ -37,6 +37,10 @@ UNVERIFIED_NOTE = {
 }
 
 
+class StageCancelled(Exception):  # noqa: N818 - a control signal, not an error
+    """Raised by a stage callback to stop answering, for example when the client went away."""
+
+
 @dataclass(frozen=True, slots=True)
 class Citation:
     """A source the answer cites, with enough context to show it."""
@@ -47,6 +51,7 @@ class Citation:
     section: str
     page: int | None
     excerpt: str
+    period: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,6 +119,8 @@ class QAService:
         usage = _usage(analysis.result)
         hits = self._retriever.glossary_hits(analysis.standalone_question, analysis.glossary_terms)
         signal = has_domain_signal(question, analysis.references, hits, catalog)
+        if analysis.scope is Scope.OUT_OF_SCOPE and not signal:
+            signal = self._retriever.names_corpus_entity(question)
         decision = decide_scope(analysis.scope, signal)
         if not decision.allowed:
             kind = MessageKind.OUT_OF_SCOPE
@@ -145,12 +152,12 @@ class QAService:
         draft, result = answerer.answer(question, analysis.language, sources)
         usage += _usage(result)
         notify("verifying")
-        check = verify(draft, sources, question)
+        check = verify(draft, sources)
         if not check.ok:
             logger.info("draft failed verification: %s", check.feedback())
             draft, result = answerer.answer(question, analysis.language, sources, check.feedback())
             usage += _usage(result)
-            check = verify(draft, sources, question)
+            check = verify(draft, sources)
         return draft, check, usage
 
 
@@ -168,6 +175,9 @@ def _finish(
         return _not_found(language, labels, "answer_not_found", usage)
     by_id = {source.id: source for source in retrieval.sources}
     cited = [by_id[source_id] for source_id in cited_ids(draft) if source_id in by_id]
+    if not cited:
+        # Every fact must be cited; an answer that still cites nothing is not grounded.
+        return _not_found(language, labels, "uncited", usage)
     caveats = list(draft.caveats)
     if check.unsupported_numbers:
         numbers = ", ".join(check.unsupported_numbers)
@@ -219,8 +229,21 @@ def _query(analysis: Analysis) -> RetrievalQuery:
 
 
 def _citation(source: Source) -> Citation:
-    excerpt = source.text[:EXCERPT_CHARS]
-    return Citation(source.id, source.doc_id, source.label, source.section, source.page, excerpt)
+    return Citation(
+        id=source.id,
+        doc_id=source.doc_id,
+        label=source.label,
+        section=source.section,
+        page=source.page,
+        excerpt=_without_provenance(source.text)[:EXCERPT_CHARS],
+        period=source.period,
+    )
+
+
+def _without_provenance(text: str) -> str:
+    """Drop the ``[DDR #12 · … · p.1]`` header line; the citation shows that information."""
+    first, _, rest = text.partition("\n")
+    return rest if first.startswith("[") and first.endswith("]") and rest else text
 
 
 def _usage(result: ChatResult | None) -> tuple[ModelUsage, ...]:

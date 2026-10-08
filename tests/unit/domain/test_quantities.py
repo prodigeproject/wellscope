@@ -12,7 +12,7 @@ from wellscope.domain.quantities import parse_inches, parse_quantity
         ("29.04 days", 29.04, "days"),
         ("26.82%", 26.82, "%"),
         ("17.500 in", 17.5, "in"),
-        ("348,640.02", 348640.02, None),
+        ("250,000.25", 250000.25, None),
         ("1.50 hr", 1.5, "hr"),
         ("0.00 m/hr", 0.0, "m/hr"),
         ("19.4 BMP", 19.4, "BMP"),

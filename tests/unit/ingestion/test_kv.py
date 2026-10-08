@@ -48,7 +48,7 @@ def test_extract_pairs_ignores_text_before_the_first_label() -> None:
 
 
 def test_extract_pairs_accepts_aliases_and_ignores_case() -> None:
-    specs = [LabelSpec("engineer", ("PTT Engineer", "Company Engineer"))]
+    specs = [LabelSpec("engineer", ("ACME Engineer", "Company Engineer"))]
     assert extract_pairs(["company engineer: J. Doe"], specs) == {"engineer": "J. Doe"}
 
 
@@ -110,3 +110,8 @@ def test_extract_pairs_accepts_wrapped_lines_that_start_at_or_left_of_the_value(
     ]
     assert extract_pairs(wrapped, specs) == {"event": "ORIGINAL DRILLING"}
     assert extract_pairs(aligned, specs) == {"status": "Drilling ahead."}
+
+
+def test_a_label_ending_in_hash_needs_no_colon() -> None:
+    specs = [LabelSpec("bha_number", ("BHA no.#",)), LabelSpec("bit_number", ("Bit no.",))]
+    assert extract_pairs(["BHA no.# 8 Bit no.:"], specs) == {"bha_number": "8", "bit_number": ""}

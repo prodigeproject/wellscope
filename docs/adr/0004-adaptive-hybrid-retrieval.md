@@ -36,3 +36,15 @@ split, trailing punctuation removed, unicode fractions expanded).
 ## Validation
 
 Retrieval and resolver unit tests; golden-set accuracy by category.
+
+**Refinements made with evaluation evidence** (see `docs/EVALUATION.md`):
+
+- The context budget is 24k tokens, so a collection of the sample's size is always read in full;
+  at 16k, questions without a report reference fell back to search and missed facts.
+- In full-context mode the best search matches are moved to the front of the report passages;
+  questions spanning several reports had missed facts in the middle of a long context.
+- Totals of the operations table are computed during rendering and given as their own passage,
+  because the model mis-added hours.
+- Every source carries its report's period, so a day is answered from the report that covers it.
+
+Result: 97/97 on the golden set, p95 latency 4.4 s.

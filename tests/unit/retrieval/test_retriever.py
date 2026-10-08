@@ -106,3 +106,29 @@ def test_report_sources_state_the_period_they_cover(tmp_path: Path) -> None:
     )
     costs = next(source for source in result.sources if source.section == "Costs (USD)")
     assert costs.period == "2026-01-14 00:00 to 2026-01-15 06:00"
+
+
+def test_capitalised_names_found_in_the_reports_are_recognised(tmp_path: Path) -> None:
+    found = retriever(tmp_path)
+    assert found.names_corpus_entity("Was phase D18 slow?")
+    assert not found.names_corpus_entity("What is the MAASP value?")
+    assert not found.names_corpus_entity("TELL ME A JOKE ABOUT THE DAILY NEWS")
+    assert not found.names_corpus_entity("Who is the PRESIDENT of WELL-Z-9?")
+    assert not found.names_corpus_entity("no capitals here")
+
+
+def test_the_most_relevant_passages_come_first_when_reports_are_given_in_full(
+    tmp_path: Path,
+) -> None:
+    result = retriever(tmp_path).retrieve(
+        query("reamer", filters=DocumentFilter(report_numbers=(12,)))
+    )
+    assert result.mode == "full"
+    first_report_source = next(source for source in result.sources if source.doc_id == DDR_ID)
+    assert "reamer" in first_report_source.text
+
+
+def test_catalog_questions_also_get_the_best_matching_passages(tmp_path: Path) -> None:
+    result = retriever(tmp_path).retrieve(query("Which reports mention a reamer?", Intent.CATALOG))
+    assert result.mode == "catalog"
+    assert any("reamer" in source.text for source in result.sources)

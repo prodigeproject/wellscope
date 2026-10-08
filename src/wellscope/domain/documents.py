@@ -115,11 +115,16 @@ class Remark(StrictModel):
 
 
 class Table(StrictModel):
-    """A ruled table read cell by cell; the first ``header_rows`` rows are headers."""
+    """A ruled table read cell by cell; the first ``header_rows`` rows are headers.
+
+    ``columns`` names every column with its full header (``Prognosis Depth m TVDSS``), combining
+    multi-row headers and cells that span several columns; it is empty without a header.
+    """
 
     section: str
     page: int
     header_rows: int = 0
+    columns: list[str] = Field(default_factory=list)
     rows: list[list[str]] = Field(default_factory=list)
 
 

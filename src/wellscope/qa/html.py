@@ -14,7 +14,7 @@ from markdown_it import MarkdownIt
 
 ALLOWED_TAGS = {
     "p", "br", "strong", "em", "del", "code", "pre", "blockquote", "hr",
-    "ul", "ol", "li", "h3", "h4", "table", "thead", "tbody", "tr", "th", "td",
+    "ul", "ol", "li", "h1", "h2", "h3", "h4", "table", "thead", "tbody", "tr", "th", "td",
 }  # fmt: skip
 _MARKDOWN = MarkdownIt("commonmark", {"html": False, "linkify": False}).enable("table")
 _CITATION = re.compile(r"\[\s*(S\d{1,3}(?:\s*[,;]\s*S\d{1,3})*)\s*\]")

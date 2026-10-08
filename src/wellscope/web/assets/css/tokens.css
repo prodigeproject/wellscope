@@ -1,0 +1,168 @@
+/* Design tokens. Light is the default; dark follows the system unless data-theme overrides it. */
+
+:root {
+  color-scheme: light;
+
+  /* Colour: warm neutrals with one teal accent; contrast pairs meet WCAG AA. */
+  --color-bg: #f6f4ef;
+  --color-surface: #fcfbf8;
+  --color-surface-2: #f0eee8;
+  --color-border: #ded9cf;
+  --color-border-strong: #c7c1b5;
+  --color-text: #1b2522;
+  --color-text-2: #46524c;
+  --color-muted: #68716b;
+  --color-accent: #0f5b5a;
+  --color-accent-hover: #0a4a49;
+  --color-accent-soft: #e3f0ee;
+  --color-on-accent: #ffffff;
+  --color-success: #276b4a;
+  --color-success-soft: #e1f0e6;
+  --color-warning: #9a6412;
+  --color-warning-soft: #fff1d9;
+  --color-danger: #b43e4d;
+  --color-danger-soft: #fae6e0;
+  --color-info: #216a8a;
+  --color-info-soft: #e8f0f7;
+  --color-doc-ddr: #0f5b5a;
+  --color-doc-dgos: #315fd2;
+  --color-doc-glossary: #766993;
+  --color-highlight: #fff1d9;
+  --color-backdrop: rgb(16 24 32 / 0.4);
+
+  /* Typography: system fonts only, so nothing is downloaded. */
+  --font-sans: "Inter", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.875rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --leading-body: 1.55;
+  --leading-tight: 1.25;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  /* Spacing on a 4-point grid. */
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
+  --space-6: 20px;
+  --space-7: 24px;
+  --space-8: 32px;
+  --space-9: 40px;
+  --space-10: 48px;
+  --space-11: 64px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  --shadow-xs: 0 1px 2px rgb(16 24 32 / 0.05);
+  --shadow-sm: 0 2px 6px rgb(16 24 32 / 0.06);
+  --shadow-md: 0 8px 24px rgb(16 24 32 / 0.08);
+  --shadow-lg: 0 16px 40px rgb(16 24 32 / 0.12);
+
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 260ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--color-accent) 40%, transparent);
+
+  --sidebar-width: 280px;
+  --sources-width: 360px;
+  --chat-max-width: 760px;
+  --topbar-height: 56px;
+
+  --z-sticky: 10;
+  --z-drawer: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --color-bg: #0e1416;
+    --color-surface: #141c1f;
+    --color-surface-2: #1a2428;
+    --color-border: #2a373c;
+    --color-border-strong: #3a4a50;
+    --color-text: #e6edeb;
+    --color-text-2: #b7c4c0;
+    --color-muted: #8d9b97;
+    --color-accent: #5cc8ba;
+    --color-accent-hover: #7ad8cb;
+    --color-accent-soft: #13302e;
+    --color-on-accent: #06201e;
+    --color-success: #63d8a0;
+    --color-success-soft: #12301f;
+    --color-warning: #f3c86e;
+    --color-warning-soft: #33280f;
+    --color-danger: #ff8995;
+    --color-danger-soft: #3a1a1f;
+    --color-info: #88c6e6;
+    --color-info-soft: #12283a;
+    --color-doc-ddr: #5cc8ba;
+    --color-doc-dgos: #88aaff;
+    --color-doc-glossary: #b9a8e6;
+    --color-highlight: #33280f;
+    --color-backdrop: rgb(0 0 0 / 0.55);
+    --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-sm: 0 2px 6px rgb(0 0 0 / 0.3);
+    --shadow-md: 0 8px 24px rgb(0 0 0 / 0.35);
+    --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.45);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #0e1416;
+  --color-surface: #141c1f;
+  --color-surface-2: #1a2428;
+  --color-border: #2a373c;
+  --color-border-strong: #3a4a50;
+  --color-text: #e6edeb;
+  --color-text-2: #b7c4c0;
+  --color-muted: #8d9b97;
+  --color-accent: #5cc8ba;
+  --color-accent-hover: #7ad8cb;
+  --color-accent-soft: #13302e;
+  --color-on-accent: #06201e;
+  --color-success: #63d8a0;
+  --color-success-soft: #12301f;
+  --color-warning: #f3c86e;
+  --color-warning-soft: #33280f;
+  --color-danger: #ff8995;
+  --color-danger-soft: #3a1a1f;
+  --color-info: #88c6e6;
+  --color-info-soft: #12283a;
+  --color-doc-ddr: #5cc8ba;
+  --color-doc-dgos: #88aaff;
+  --color-doc-glossary: #b9a8e6;
+  --color-highlight: #33280f;
+  --color-backdrop: rgb(0 0 0 / 0.55);
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-sm: 0 2px 6px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 8px 24px rgb(0 0 0 / 0.35);
+  --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+  }
+}

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="WellScope">
+  <rect width="32" height="32" rx="8" fill="#0F5B5A"/>
+  <path d="M16 6l9 5v10l-9 5-9-5V11z" fill="none" stroke="#E3F0EE" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M16 11v15" stroke="#E3F0EE" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="16" cy="11" r="2.4" fill="#F3C86E"/>
+</svg>

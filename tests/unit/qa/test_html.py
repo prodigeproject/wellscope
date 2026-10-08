@@ -6,8 +6,8 @@ BUTTON = '<button type="button" class="cite" data-source="{}">{}</button>'
 
 
 def test_markdown_becomes_html_with_citation_buttons() -> None:
-    html = render_answer("**348,640.02** USD [S1]\n\n- first [S1, S2]", {"S1", "S2"})
-    assert "<strong>348,640.02</strong>" in html
+    html = render_answer("**250,000.00** USD [S1]\n\n- first [S1, S2]", {"S1", "S2"})
+    assert "<strong>250,000.00</strong>" in html
     assert BUTTON.format("S1", "S1") in html
     assert BUTTON.format("S2", "S2") in html
     assert html.count('class="cite"') == 3

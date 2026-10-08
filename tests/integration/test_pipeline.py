@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
+from tests.support.pdf_canvas import pdf_canvas
 from wellscope.config import Settings
+from wellscope.errors import ConfigurationError, IngestionError
 from wellscope.pipeline import run_ingest
 
 
@@ -37,3 +41,29 @@ def test_ingest_is_deterministic_and_prunes_removed_sources(settings: Settings) 
     assert third.manifest.documents == []
     assert any("removed stale output" in note for note in third.notes)
     assert not list((settings.output_dir / "documents").glob("*.json"))
+
+
+def test_reports_without_a_date_sort_with_dated_ones(settings: Settings) -> None:
+    with pdf_canvas(settings.data_dir / "undated.pdf") as canvas:
+        canvas.text(40, 40, "WEEKLY NOTE WITHOUT A DATE")
+        canvas.text(40, 60, "Mud weight 10.0 ppg")
+    documents = run_ingest(settings).manifest.documents
+    assert len(documents) == 2
+    assert [document.report_date is None for document in documents] == [False, True]
+
+
+def test_a_missing_data_folder_is_an_error(settings: Settings) -> None:
+    missing = settings.model_copy(update={"data_dir": settings.data_dir / "typo"})
+    with pytest.raises(ConfigurationError) as raised:
+        run_ingest(missing)
+    assert raised.value.code == "data_dir_missing"
+
+
+def test_a_folder_without_sources_leaves_previous_outputs_alone(settings: Settings) -> None:
+    run_ingest(settings)
+    empty = settings.data_dir.parent / "empty"
+    empty.mkdir()
+    with pytest.raises(IngestionError) as raised:
+        run_ingest(settings.model_copy(update={"data_dir": empty}))
+    assert raised.value.code == "no_sources"
+    assert list((settings.output_dir / "documents").glob("*.json"))

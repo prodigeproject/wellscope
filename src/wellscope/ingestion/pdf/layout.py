@@ -120,9 +120,9 @@ def _overflow(
 ) -> tuple[set[int], dict[Position, str]]:
     """Characters of text runs that spill past a cell border into a neighbour's text.
 
-    Reports clip cell content at inner borders (the page shows ``Fire and Aba``), yet the
+    Reports clip cell content at inner borders (the page shows ``Run casi``), yet the
     spilled glyphs are in the file and extractors glue them to the next cell (``…REAMER1``,
-    ``AbandLoanst``). The spilled glyphs are removed from the page geometry and their text is
+    ``casLaisntg``). The spilled glyphs are removed from the page geometry and their text is
     returned keyed by the position of the run's last kept character, so the value keeps its full
     text in its own cell. A border only clips when other text sits beyond it on the same
     baseline; text running past an outer frame stays visible and is kept.

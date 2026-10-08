@@ -80,7 +80,7 @@ def _entry(
         status, expansion = GlossaryStatus.UNKNOWN, None
     aliases = _aliases(term, description)
     return GlossaryEntry(
-        id=_unique_id(term, row_number, used_ids),
+        id=_unique_id(term, used_ids),
         term=term,
         aliases=aliases,
         expansion=expansion,
@@ -119,7 +119,11 @@ def _senses(expansion: str | None, aliases: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(part.strip() for part in _SPACED_SLASH.split(expansion))
 
 
-def _unique_id(term: str, row_number: int, used_ids: set[str]) -> str:
+def _unique_id(term: str, used_ids: set[str]) -> str:
+    """``gl-<slug>``, numbered from 2 when the slug is taken (terms repeat across tables)."""
     slug = _NON_ALNUM.sub("-", term.lower()).strip("-") or "term"
-    candidate = f"gl-{slug}"
-    return candidate if candidate not in used_ids else f"{candidate}-{row_number}"
+    candidate, number = f"gl-{slug}", 1
+    while candidate in used_ids:
+        number += 1
+        candidate = f"gl-{slug}-{number}"
+    return candidate

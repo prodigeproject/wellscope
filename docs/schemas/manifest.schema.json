@@ -1,0 +1,209 @@
+{
+  "$defs": {
+    "DocumentType": {
+      "description": "Report families recognised by content signature.",
+      "enum": [
+        "DDR",
+        "DGOS",
+        "GENERIC"
+      ],
+      "title": "DocumentType",
+      "type": "string"
+    },
+    "GlossarySummary": {
+      "additionalProperties": false,
+      "description": "Where the glossary came from and how many entries it holds.",
+      "properties": {
+        "source_file": {
+          "title": "Source File",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "entries": {
+          "title": "Entries",
+          "type": "integer"
+        },
+        "json_path": {
+          "title": "Json Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_file",
+        "sha256",
+        "entries",
+        "json_path"
+      ],
+      "title": "GlossarySummary",
+      "type": "object"
+    },
+    "ManifestDocument": {
+      "additionalProperties": false,
+      "description": "One parsed report as listed in the manifest.",
+      "properties": {
+        "doc_id": {
+          "title": "Doc Id",
+          "type": "string"
+        },
+        "doc_type": {
+          "$ref": "#/$defs/DocumentType"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "well": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Well"
+        },
+        "report_number": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Report Number"
+        },
+        "report_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Report Date"
+        },
+        "source_file": {
+          "title": "Source File",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "page_count": {
+          "title": "Page Count",
+          "type": "integer"
+        },
+        "quality_status": {
+          "title": "Quality Status",
+          "type": "string"
+        },
+        "json_path": {
+          "title": "Json Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "doc_id",
+        "doc_type",
+        "title",
+        "source_file",
+        "sha256",
+        "page_count",
+        "quality_status",
+        "json_path"
+      ],
+      "title": "ManifestDocument",
+      "type": "object"
+    },
+    "QuarantinedFile": {
+      "additionalProperties": false,
+      "description": "A source file that could not be ingested, with a machine-readable reason.",
+      "properties": {
+        "source_file": {
+          "title": "Source File",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "detail": {
+          "title": "Detail",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_file",
+        "reason",
+        "detail"
+      ],
+      "title": "QuarantinedFile",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Catalog of everything one ingest run produced.",
+  "properties": {
+    "schema_version": {
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "parser_version": {
+      "title": "Parser Version",
+      "type": "string"
+    },
+    "index_version": {
+      "title": "Index Version",
+      "type": "string"
+    },
+    "documents": {
+      "items": {
+        "$ref": "#/$defs/ManifestDocument"
+      },
+      "title": "Documents",
+      "type": "array"
+    },
+    "glossary": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GlossarySummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "quarantined": {
+      "items": {
+        "$ref": "#/$defs/QuarantinedFile"
+      },
+      "title": "Quarantined",
+      "type": "array"
+    }
+  },
+  "required": [
+    "generated_at",
+    "parser_version",
+    "index_version"
+  ],
+  "title": "Manifest",
+  "type": "object"
+}

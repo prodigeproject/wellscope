@@ -31,4 +31,8 @@ Reviewers run the app with their own OpenAI key, so model access may differ. A l
 
 ## Validation
 
-`wellscope eval --models …` comparison table in `docs/EVALUATION.md`.
+Golden set of 97 questions, answer model varied with `WELLSCOPE_CHAT_MODEL`
+(`docs/EVALUATION.md`): `gpt-5.4-mini` 95/97 at p95 4.5 s and about USD 0.010 per question;
+`gpt-4.1-mini` 92/97 at 6.8 s and USD 0.005; `gpt-5.4-nano` 91/97 at 4.6 s and USD 0.003. All three
+refused every out-of-scope question with no false refusal. The defaults are confirmed; the
+final pipeline scores 97/97 with them.

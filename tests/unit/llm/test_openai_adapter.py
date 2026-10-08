@@ -94,3 +94,31 @@ def test_hash_embedder_is_deterministic_and_keyword_sensitive() -> None:
     first, second, other = embedder.embed(["daily cost report", "daily cost report", "weather"])
     assert first == second
     assert sum(a * b for a, b in zip(first, other, strict=True)) == 0
+
+
+def test_each_rejected_parameter_is_relaxed_in_turn_until_the_call_succeeds() -> None:
+    model, responses = model_with(
+        [
+            bad_request("Unsupported parameter: 'temperature'"),
+            bad_request("Unsupported value: 'reasoning.effort' does not support 'none'"),
+            bad_request("Unsupported parameter: 'reasoning'"),
+            reply("{}"),
+        ]
+    )
+    assert model.complete(REQUEST).content == {}
+    assert responses.calls[2]["reasoning"] == {"effort": "low"}
+    assert "temperature" not in responses.calls[3]
+    assert "reasoning" not in responses.calls[3]
+
+
+def test_a_rejection_after_every_parameter_is_dropped_is_a_model_error() -> None:
+    model, _ = model_with(
+        [
+            bad_request("Unsupported parameter: 'temperature'"),
+            bad_request("Unsupported parameter: 'reasoning'"),
+            bad_request("Unsupported parameter: 'max_output_tokens'"),
+        ]
+    )
+    with pytest.raises(ModelError) as raised:
+        model.complete(REQUEST)
+    assert raised.value.code == "model_error"
