@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -52,6 +53,22 @@ def test_doctor_flags_missing_index(tmp_path: Path) -> None:
     ok, detail = checks_by_id(make_settings(tmp_path))["index"]
     assert ok is False
     assert "wellscope ingest" in detail
+
+
+def test_doctor_flags_sources_changed_since_the_last_ingest(tmp_path: Path) -> None:
+    settings = make_settings(tmp_path)
+    settings.data_dir.mkdir(parents=True)
+    settings.output_dir.mkdir(parents=True)
+    settings.database_path.write_bytes(b"index")
+    source = settings.data_dir / "new.pdf"
+    source.write_bytes(b"%PDF-1.4")
+    index_time = settings.database_path.stat().st_mtime
+    os.utime(source, (index_time + 60, index_time + 60))
+    ok, detail = checks_by_id(settings)["index"]
+    assert ok is False
+    assert "changed since the last ingest" in detail
+    os.utime(source, (index_time - 60, index_time - 60))
+    assert checks_by_id(settings)["index"][0] is True
 
 
 def test_cli_version_flag_prints_version() -> None:
