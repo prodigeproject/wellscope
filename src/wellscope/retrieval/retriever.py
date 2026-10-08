@@ -40,8 +40,9 @@ GLOSSARY_LABEL = "Glossary"
 CATALOG_LABEL = "Report catalog"
 CONFLICTS_LABEL = "Data conflicts"
 
-# Names written in capitals, as reports write them: PLATFORM-C, K-28, RIG-2, ACME.
-_NAME = re.compile(r"\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+\b|\b[A-Z][A-Z0-9]{2,}\b")
+# Code-like names as reports write them: PLATFORM-C, K-28, RIG-2, D18. Plain capitalised
+# words are not enough (a question typed in capitals would otherwise count as a domain signal).
+_NAME = re.compile(r"\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+\b|\b[A-Z]+\d[A-Z0-9]*\b")
 
 Reports = Mapping[str, CatalogEntry]
 
