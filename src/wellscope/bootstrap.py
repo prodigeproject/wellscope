@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import openai
+from fastapi import FastAPI
 
+from wellscope.api.app import Services, create_app
 from wellscope.config import Settings
 from wellscope.indexing import IndexProjector
 from wellscope.llm.openai_adapter import OpenAIChatModel, OpenAIEmbedder
@@ -41,10 +43,10 @@ def index_projector(settings: Settings) -> IndexProjector:
     return IndexProjector(settings.database_path, embedder(settings), cache)
 
 
-def qa_service(settings: Settings) -> QAService:
+def qa_service(settings: Settings, index: SearchIndex | None = None) -> QAService:
     """Question-answering service over the index at ``settings.database_path``."""
     client = openai_client(settings)
-    index = SearchIndex(settings.database_path)
+    index = index or SearchIndex(settings.database_path)
     embedder = OpenAIEmbedder(client, settings.embedding_model) if client else None
     retriever = Retriever(index, HybridSearch(index, embedder), settings.context_token_budget)
     if client is None:
@@ -52,3 +54,14 @@ def qa_service(settings: Settings) -> QAService:
     analyzer = Analyzer(OpenAIChatModel(client, settings.analyzer_model))
     answerer = Answerer(OpenAIChatModel(client, settings.chat_model))
     return QAService(index, retriever, analyzer, answerer)
+
+
+def web_app(settings: Settings) -> FastAPI:
+    """The web application served by ``wellscope serve``."""
+    index = SearchIndex(settings.database_path)
+    services = Services(
+        qa=qa_service(settings, index),
+        index=index,
+        model_configured=openai_client(settings) is not None,
+    )
+    return create_app(settings, services)

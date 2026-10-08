@@ -47,6 +47,7 @@ class Citation:
     section: str
     page: int | None
     excerpt: str
+    period: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -219,8 +220,21 @@ def _query(analysis: Analysis) -> RetrievalQuery:
 
 
 def _citation(source: Source) -> Citation:
-    excerpt = source.text[:EXCERPT_CHARS]
-    return Citation(source.id, source.doc_id, source.label, source.section, source.page, excerpt)
+    return Citation(
+        id=source.id,
+        doc_id=source.doc_id,
+        label=source.label,
+        section=source.section,
+        page=source.page,
+        excerpt=_without_provenance(source.text)[:EXCERPT_CHARS],
+        period=source.period,
+    )
+
+
+def _without_provenance(text: str) -> str:
+    """Drop the ``[DDR #12 · … · p.1]`` header line; the citation shows that information."""
+    first, _, rest = text.partition("\n")
+    return rest if first.startswith("[") and first.endswith("]") and rest else text
 
 
 def _usage(result: ChatResult | None) -> tuple[ModelUsage, ...]:

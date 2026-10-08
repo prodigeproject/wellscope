@@ -13,6 +13,8 @@ LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 
 DATABASE_FILENAME = "wellscope.db"
 EMBEDDING_CACHE_FILENAME = "cache/embeddings.db"
+# Host names the web app answers to; anything else is refused (DNS-rebinding defence).
+LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "[::1]")
 
 
 class Settings(BaseSettings):
@@ -36,6 +38,7 @@ class Settings(BaseSettings):
     data_dir: Path = Path("data/raw")
     output_dir: Path = Path("data/processed")
     host: str = "127.0.0.1"
+    allowed_hosts: list[str] = Field(default_factory=lambda: list(LOOPBACK_HOSTS))
     port: int = Field(default=8000, ge=1, le=65535)
     max_question_chars: int = Field(default=1000, ge=50, le=4000)
     rate_limit_per_min: int = Field(default=20, ge=1, le=600)

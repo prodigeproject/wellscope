@@ -12,7 +12,7 @@ from rich.markdown import Markdown
 from rich.table import Table
 
 from wellscope import __version__
-from wellscope.bootstrap import index_projector, qa_service
+from wellscope.bootstrap import index_projector, qa_service, web_app
 from wellscope.config import get_settings
 from wellscope.doctor import run_checks
 from wellscope.observability import configure_logging
@@ -65,6 +65,23 @@ def ingest() -> None:
     configure_logging("WARNING")
     console.print(f"Ingesting [bold]{settings.data_dir}[/] -> [bold]{settings.output_dir}[/]")
     _print_ingest(run_ingest(settings, index_projector(settings)))
+
+
+@app.command()
+def serve(
+    host: str | None = typer.Option(None, help="Interface to bind (default from settings)."),
+    port: int | None = typer.Option(None, help="Port to listen on (default from settings)."),
+) -> None:
+    """Start the web app (http://127.0.0.1:8000 by default); the index reloads after ingest."""
+    import uvicorn  # noqa: PLC0415 - only this command needs the server
+
+    settings = get_settings()
+    configure_logging(settings.log_level)
+    if host is not None or port is not None:
+        overrides = {"host": host or settings.host, "port": port or settings.port}
+        settings = settings.model_copy(update=overrides)
+    console.print(f"WellScope on [bold]http://{settings.host}:{settings.port}[/] (Ctrl+C to stop)")
+    uvicorn.run(web_app(settings), host=settings.host, port=settings.port, log_config=None)
 
 
 @app.command()
