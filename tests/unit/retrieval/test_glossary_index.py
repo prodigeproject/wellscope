@@ -54,3 +54,9 @@ def test_lookup_resolves_terms_named_by_the_analyzer() -> None:
     assert looked_up("leak off test") == ("LOT", "expansion")
     assert looked_up("Non-Productive Tme") == ("NPT", "fuzzy")
     assert looked_up("weather") is None
+
+
+def test_aliases_starting_with_a_symbol_match_inside_names() -> None:
+    index = GlossaryIndex([gloss("-1", expansion=None), gloss("NPT")])
+    assert [hit.entry.term for hit in index.mentions("What does WELL-1 mean?")] == ["-1"]
+    assert index.mentions("a 12-1/4 in hole") == []
