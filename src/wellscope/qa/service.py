@@ -148,12 +148,12 @@ class QAService:
         draft, result = answerer.answer(question, analysis.language, sources)
         usage += _usage(result)
         notify("verifying")
-        check = verify(draft, sources, question)
+        check = verify(draft, sources)
         if not check.ok:
             logger.info("draft failed verification: %s", check.feedback())
             draft, result = answerer.answer(question, analysis.language, sources, check.feedback())
             usage += _usage(result)
-            check = verify(draft, sources, question)
+            check = verify(draft, sources)
         return draft, check, usage
 
 
