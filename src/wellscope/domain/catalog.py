@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from dataclasses import dataclass
 
 from pydantic import Field
 
@@ -86,3 +87,42 @@ class QualityReport(StrictModel):
     generated_at: dt.datetime
     documents: list[DocumentQuality] = Field(default_factory=list)
     cross_document: list[CrossDocumentFinding] = Field(default_factory=list)
+
+
+@dataclass(frozen=True, slots=True)
+class CatalogEntry:
+    """A report as listed in the search index, with a one-line summary of key facts."""
+
+    doc_id: str
+    doc_type: str
+    label: str
+    title: str
+    well: str | None
+    rig: str | None
+    report_number: int | None
+    report_date: dt.date | None
+    period_start: dt.datetime | None
+    period_end: dt.datetime | None
+    quality_status: str
+    summary: str
+
+
+@dataclass(frozen=True, slots=True)
+class ChunkRecord:
+    """An indexed passage as stored in the search index."""
+
+    chunk_id: str
+    doc_id: str
+    kind: str
+    title: str
+    page: int | None
+    text: str
+
+
+@dataclass(frozen=True, slots=True)
+class ConflictRecord:
+    """A cross-document conflict and the value each document reports."""
+
+    finding_id: str
+    detail: str
+    values: tuple[tuple[str, str], ...]

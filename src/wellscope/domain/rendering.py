@@ -14,6 +14,23 @@ from wellscope.domain.documents import DocumentType, Operation, ReportDocument
 from wellscope.domain.glossary import GlossaryEntry, GlossaryStatus
 
 BLANK = "(blank)"
+SUMMARY_FIELDS = (
+    "md",
+    "tvd",
+    "depth_mddf",
+    "depth_tvdss",
+    "current_hole_size",
+    "daily_cost",
+    "cumm_cost",
+    "cost_musd",
+    "daily_npt",
+    "cumm_npt",
+    "mud_weight",
+    "phase",
+    "current_status",
+    "current_operation",
+)
+SUMMARY_VALUE_LIMIT = 160
 SECTION_TITLES = {
     "header": "Report header",
     "well_info": "Well info",
@@ -55,6 +72,17 @@ def document_label(document: ReportDocument) -> str:
     number = f" #{document.report.number}" if document.report.number is not None else ""
     day = f" ({document.report.date.isoformat()})" if document.report.date else ""
     return f"{document.doc_type.value}{number}{day}"
+
+
+def catalog_summary(document: ReportDocument) -> str:
+    """One line of key facts for the catalog card (only fields the report actually has)."""
+    facts = []
+    for key in SUMMARY_FIELDS:
+        field = document.fields.get(key)
+        if field is not None and field.raw:
+            value = field.raw[:SUMMARY_VALUE_LIMIT]
+            facts.append(f"{field.label}: {value}")
+    return "; ".join(facts)
 
 
 def document_passages(document: ReportDocument) -> list[Passage]:
