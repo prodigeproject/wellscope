@@ -135,3 +135,10 @@ def test_rebuilding_swaps_the_file_and_refreshes_cached_data(tmp_path: Path) -> 
     assert index.version() == "v2"
     assert index.glossary() == [other]
     assert [p.name for p in tmp_path.iterdir()] == ["index.db"]
+
+
+def test_document_chunks_come_in_reading_order(tmp_path: Path) -> None:
+    chunks = build(tmp_path / "index.db").document_chunks([SECOND])
+    assert chunks
+    assert {chunk.doc_id for chunk in chunks} == {SECOND}
+    assert chunks[0].chunk_id == f"{SECOND}:fields:costs"
