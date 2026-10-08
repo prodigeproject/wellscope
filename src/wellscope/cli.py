@@ -17,6 +17,7 @@ from wellscope import __version__
 from wellscope.bootstrap import index_projector, qa_service, web_app
 from wellscope.config import get_settings
 from wellscope.doctor import run_checks
+from wellscope.domain.schemas import json_schemas
 from wellscope.evals.golden import load_golden
 from wellscope.evals.report import summarize
 from wellscope.evals.runner import run_eval, save_run
@@ -28,6 +29,7 @@ from wellscope.qa.service import Answer
 DEFAULT_GOLDEN = Path("evals/private/golden.yaml")
 DEFAULT_REPORTS = Path("reports")
 PRIVATE_RUNS = Path("evals/private/runs")
+DEFAULT_SCHEMAS = Path("docs/schemas")
 MAX_WORKERS = 8
 
 app = typer.Typer(
@@ -136,6 +138,18 @@ def evaluate(
     console.print(f"Accuracy {overall['passed']}/{overall['total']} ({overall['rate']:.1%})")
     report = save_run(runs, summary, reports, PRIVATE_RUNS)
     console.print(f"Report: {report} (answers kept privately in {PRIVATE_RUNS})")
+
+
+@app.command()
+def schema(
+    out: Annotated[Path, typer.Option(help="Folder for the schema files.")] = DEFAULT_SCHEMAS,
+) -> None:
+    """Export JSON Schemas of the JSON files that ingest writes."""
+    out.mkdir(parents=True, exist_ok=True)
+    for name, document in json_schemas().items():
+        path = out / f"{name}.schema.json"
+        path.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8", newline="\n")
+        console.print(f"Wrote {path}")
 
 
 def _print_results(results: list[ItemResult]) -> None:

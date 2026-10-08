@@ -1,0 +1,122 @@
+{
+  "$defs": {
+    "ConflictValue": {
+      "additionalProperties": false,
+      "description": "The value one document reports for a conflicting fact.",
+      "properties": {
+        "doc_id": {
+          "title": "Doc Id",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "doc_id",
+        "value"
+      ],
+      "title": "ConflictValue",
+      "type": "object"
+    },
+    "CrossDocumentFinding": {
+      "additionalProperties": false,
+      "description": "Documents that disagree about the same fact.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "detail": {
+          "title": "Detail",
+          "type": "string"
+        },
+        "values": {
+          "items": {
+            "$ref": "#/$defs/ConflictValue"
+          },
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "severity",
+        "detail",
+        "values"
+      ],
+      "title": "CrossDocumentFinding",
+      "type": "object"
+    },
+    "DocumentQuality": {
+      "additionalProperties": false,
+      "description": "Summary of one document's quality checks.",
+      "properties": {
+        "doc_id": {
+          "title": "Doc Id",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "failed_checks": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Failed Checks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "doc_id",
+        "status"
+      ],
+      "title": "DocumentQuality",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Findings within and across documents; source values are never altered.",
+  "properties": {
+    "schema_version": {
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "documents": {
+      "items": {
+        "$ref": "#/$defs/DocumentQuality"
+      },
+      "title": "Documents",
+      "type": "array"
+    },
+    "cross_document": {
+      "items": {
+        "$ref": "#/$defs/CrossDocumentFinding"
+      },
+      "title": "Cross Document",
+      "type": "array"
+    }
+  },
+  "required": [
+    "generated_at"
+  ],
+  "title": "QualityReport",
+  "type": "object"
+}

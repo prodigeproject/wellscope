@@ -1,0 +1,182 @@
+{
+  "$defs": {
+    "GlossaryEntry": {
+      "additionalProperties": false,
+      "description": "One glossary row: a term, every spelling that refers to it, and its meaning.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "term": {
+          "title": "Term",
+          "type": "string"
+        },
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "expansion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expansion"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "status": {
+          "$ref": "#/$defs/GlossaryStatus",
+          "default": "confirmed"
+        },
+        "senses": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Senses",
+          "type": "array"
+        },
+        "category": {
+          "default": "abbreviation",
+          "enum": [
+            "abbreviation",
+            "well_name_part"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "source_row": {
+          "title": "Source Row",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "term",
+        "aliases",
+        "source_row"
+      ],
+      "title": "GlossaryEntry",
+      "type": "object"
+    },
+    "GlossaryStatus": {
+      "description": "How certain the glossary itself is about a definition.",
+      "enum": [
+        "confirmed",
+        "to_be_confirmed",
+        "unknown"
+      ],
+      "title": "GlossaryStatus",
+      "type": "string"
+    },
+    "ParserInfo": {
+      "additionalProperties": false,
+      "description": "Which parser and form template produced the document.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        },
+        "template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Template"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "ParserInfo",
+      "type": "object"
+    },
+    "SourceInfo": {
+      "additionalProperties": false,
+      "description": "Provenance of the source file.",
+      "properties": {
+        "file_name": {
+          "title": "File Name",
+          "type": "string"
+        },
+        "relative_path": {
+          "title": "Relative Path",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "page_count": {
+          "title": "Page Count",
+          "type": "integer"
+        },
+        "parser": {
+          "$ref": "#/$defs/ParserInfo"
+        }
+      },
+      "required": [
+        "file_name",
+        "relative_path",
+        "sha256",
+        "page_count",
+        "parser"
+      ],
+      "title": "SourceInfo",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The glossary knowledge base written to ``glossary.json``.",
+  "properties": {
+    "schema_version": {
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/SourceInfo"
+    },
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/GlossaryEntry"
+      },
+      "title": "Entries",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source"
+  ],
+  "title": "Glossary",
+  "type": "object"
+}
