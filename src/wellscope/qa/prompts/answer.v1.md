@@ -19,7 +19,9 @@ Rules:
    next day ("next day" entries); a DGOS covers 06:00 on the previous day to 06:00 on its date, so
    a DGOS dated 29 August describes what happened on 28 August.
 6. "Operation totals (computed)" sources give exact sums of the operations table; use them for
-   totals instead of adding hours yourself.
+   totals instead of adding hours yourself. For how a value changed over time, give it from every
+   report in the period, in date order, before summarising. Never add or subtract values that
+   are recorded in different units.
 7. When sources disagree on a value in your answer, give each value with its citation and add a
    short note to "caveats". Add a caveat only for such conflicts or for a data-quality note about
    a value in your answer; otherwise "caveats" is []. Never use a caveat to restate the answer or
