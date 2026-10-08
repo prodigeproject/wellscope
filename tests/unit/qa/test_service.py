@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +9,7 @@ import pytest
 
 from tests.support.documents import make_document, make_glossary
 from tests.support.index import build_test_index
+from wellscope.domain.catalog import ConflictValue, CrossDocumentFinding
 from wellscope.domain.glossary import GlossaryEntry
 from wellscope.domain.messages import Language, MessageKind, message
 from wellscope.errors import ModelError
@@ -52,9 +54,15 @@ def cite_daily_cost(request: ChatRequest) -> dict[str, Any]:
 
 class Setup:
     def __init__(
-        self, tmp_path: Path, analysis: dict[str, Any], answer: Responder | None = None
+        self,
+        tmp_path: Path,
+        analysis: dict[str, Any],
+        answer: Responder | None = None,
+        conflicts: Sequence[CrossDocumentFinding] = (),
     ) -> None:
-        index = build_test_index(tmp_path / "i.db", [make_document()], make_glossary(NPT))
+        index = build_test_index(
+            tmp_path / "i.db", [make_document()], make_glossary(NPT), conflicts=conflicts
+        )
         self.analyzer_model = FakeChatModel(lambda request: analysis, model="fake-analyzer")
         self.answer_model = FakeChatModel(answer or cite_daily_cost)
         self.service = QAService(
@@ -165,3 +173,35 @@ def test_an_answer_that_still_cites_nothing_after_the_retry_is_not_shown(
     assert len(setup.answer_model.requests) == 2
     assert answer.status == "not_found"
     assert answer.reason == "uncited"
+
+
+def test_a_data_conflict_is_stated_from_the_checks_whatever_the_model_says(
+    tmp_path: Path,
+) -> None:
+    def picks_one_value(request: ChatRequest) -> dict[str, Any]:
+        source = re.search(r'<source id="(S\d+)"[^>]*section="Well info"', request.user)
+        assert source is not None
+        return {
+            "status": "answered",
+            "answer_markdown": f"The well was spudded on **02/01/2026** [{source.group(1)}].",
+            "citations": [source.group(1)],
+            "caveats": ["Another report gives a different spud date, but it is a typo."],
+        }
+
+    spud = CrossDocumentFinding(
+        id="conflict.spud_date",
+        severity="warning",
+        detail="Spud date differs between documents.",
+        values=[
+            ConflictValue(doc_id="ddr-well-a-1-0012", value="2026-01-02"),
+            ConflictValue(doc_id="dgos-well-a-1-0013", value="2027-01-02"),
+        ],
+    )
+    analysis = {**ANALYSIS, "standalone_question": "When was the well spudded?"}
+    setup = Setup(tmp_path, analysis, picks_one_value, conflicts=[spud])
+    answer = setup.service.ask("When was the well spudded in DDR 12?")
+    assert answer.status == "answered"
+    assert answer.caveats == (
+        "The reports disagree on the spud date: 02/01/2026 (2026-01-02) in DDR #12 (2026-01-14); "
+        "02/01/2027 (2027-01-02) in dgos-well-a-1-0013.",
+    )

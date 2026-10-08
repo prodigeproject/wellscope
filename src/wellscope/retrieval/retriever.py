@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping, Sequence
 
-from wellscope.domain.catalog import CatalogEntry, ChunkRecord
+from wellscope.domain.catalog import CatalogEntry, ChunkRecord, ConflictRecord
 from wellscope.domain.chunks import GLOSSARY_DOC_ID
 from wellscope.domain.rendering import glossary_passage
 from wellscope.domain.text import search_terms
@@ -91,11 +91,12 @@ class Retriever:
         if query.intent in CATALOG_INTENTS or unconstrained:
             card = catalog_card(catalog)
             builder.add(Evidence(CATALOG_DOC_ID, CATALOG_LABEL, "All reports", None, card))
+        conflicts: tuple[ConflictRecord, ...] = ()
         if query.intent is not Intent.GLOSSARY:
-            self._add_conflicts(builder, resolution.entries, reports)
+            conflicts = self._add_conflicts(builder, resolution.entries, reports)
         mode = self._add_evidence(builder, query, resolution.entries, reports, bool(hits))
         doc_ids = tuple(entry.doc_id for entry in resolution.entries)
-        return Retrieval(builder.sources, doc_ids, glossary_ids, mode)
+        return Retrieval(builder.sources, doc_ids, glossary_ids, mode, conflicts=conflicts)
 
     def _add_evidence(
         self,
@@ -131,13 +132,14 @@ class Retriever:
 
     def _add_conflicts(
         self, builder: SourceBuilder, entries: Sequence[CatalogEntry], reports: Reports
-    ) -> None:
+    ) -> tuple[ConflictRecord, ...]:
+        """Add the conflicts that involve ``entries`` as a source and return them."""
         doc_ids = {entry.doc_id for entry in entries}
-        relevant = [
+        relevant = tuple(
             conflict
             for conflict in self._index.conflicts()
             if any(doc_id in doc_ids for doc_id, _ in conflict.values)
-        ]
+        )
         if relevant:
             labels = {doc_id: entry.label for doc_id, entry in reports.items()}
             card = conflict_card(relevant, labels)
@@ -145,6 +147,7 @@ class Retriever:
                 CONFLICTS_DOC_ID, CONFLICTS_LABEL, "Cross-report checks", None, card
             )
             builder.add(evidence)
+        return relevant
 
     def _glossary_index(self) -> GlossaryIndex:
         version = self._index.version()

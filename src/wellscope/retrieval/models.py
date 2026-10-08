@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Literal
 
+from wellscope.domain.catalog import ConflictRecord
+
 RetrievalMode = Literal["full", "search", "glossary", "catalog", "none"]
 
 
@@ -96,3 +98,4 @@ class Retrieval:
     glossary_ids: tuple[str, ...]
     mode: RetrievalMode
     unmatched_filter: bool = False
+    conflicts: tuple[ConflictRecord, ...] = ()
