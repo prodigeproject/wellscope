@@ -12,6 +12,8 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 
+_NEVER = re.compile(r"(?!)")
+
 
 @dataclass(frozen=True, slots=True)
 class LabelSpec:
@@ -21,16 +23,27 @@ class LabelSpec:
     labels: tuple[str, ...]
 
 
-def extract_pairs(lines: Iterable[str], specs: Sequence[LabelSpec]) -> dict[str, str]:
+def extract_pairs(
+    lines: Iterable[str],
+    specs: Sequence[LabelSpec],
+    headings: Sequence[LabelSpec] = (),
+) -> dict[str, str]:
     """Map each recognised label's key to its value text.
 
-    A label must start at a word boundary and be followed by a colon. A repeated label (for
-    example a page header printed on every page) keeps its first value.
+    A label must start at a word boundary and be followed by a colon; a heading label must fill
+    its whole line. A repeated label (for example a page header printed on every page) keeps its
+    first value.
     """
     pattern, keys = _compile(tuple(specs))
+    heading_keys = {_normalise(label): spec.key for spec in headings for label in spec.labels}
     values: dict[str, list[str]] = {}
     current: str | None = None
     for line in lines:
+        heading = heading_keys.get(_normalise(line))
+        if heading is not None:
+            current = None if heading in values else heading
+            values.setdefault(heading, [])
+            continue
         matches = list(pattern.finditer(line))
         prefix = line[: matches[0].start()] if matches else line
         if current is not None and prefix.strip():
@@ -49,6 +62,8 @@ def extract_pairs(lines: Iterable[str], specs: Sequence[LabelSpec]) -> dict[str,
 @lru_cache(maxsize=64)
 def _compile(specs: tuple[LabelSpec, ...]) -> tuple[re.Pattern[str], dict[str, str]]:
     keys = {_normalise(label): spec.key for spec in specs for label in spec.labels}
+    if not keys:
+        return _NEVER, keys
     aliases = sorted(keys, key=len, reverse=True)
     alternation = "|".join(re.escape(alias).replace(r"\ ", r"\s+") for alias in aliases)
     pattern = re.compile(rf"(?<![A-Za-z0-9])(?P<label>{alternation})\s*:", re.IGNORECASE)

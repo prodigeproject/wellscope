@@ -76,3 +76,11 @@ def test_extract_pairs_reads_heading_labels_that_stand_alone_on_a_line() -> None
         "npt": "1.50 hrs due to weather.",
         "next_24h": "Run in hole.",
     }
+
+
+def test_extract_pairs_with_only_headings_never_matches_empty_labels() -> None:
+    headings = [LabelSpec("objectives", ("OBJECTIVES",))]
+    lines = ["OBJECTIVES", "Explore reservoir X: below field Y."]
+    assert extract_pairs(lines, [], headings=headings) == {
+        "objectives": "Explore reservoir X: below field Y."
+    }
