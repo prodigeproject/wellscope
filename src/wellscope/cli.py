@@ -18,6 +18,7 @@ from wellscope.bootstrap import index_projector, models, qa_service, web_app
 from wellscope.config import get_settings
 from wellscope.doctor import model_checks, run_checks
 from wellscope.domain.schemas import json_schemas
+from wellscope.errors import WellScopeError
 from wellscope.evals.golden import load_golden
 from wellscope.evals.report import summarize
 from wellscope.evals.runner import run_eval, save_run
@@ -89,7 +90,12 @@ def ingest() -> None:
     settings = get_settings()
     configure_logging("WARNING")
     console.print(f"Ingesting [bold]{settings.data_dir}[/] -> [bold]{settings.output_dir}[/]")
-    _print_ingest(run_ingest(settings, index_projector(settings)))
+    try:
+        result = run_ingest(settings, index_projector(settings))
+    except WellScopeError as error:
+        console.print(f"[red]Ingest stopped:[/] {error} ({error.code})")
+        raise typer.Exit(code=1) from error
+    _print_ingest(result)
 
 
 @app.command()
