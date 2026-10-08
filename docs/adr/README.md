@@ -12,3 +12,4 @@ Format: MADR-lite — Status, Context, Decision, Alternatives considered, Conseq
 | [0006](0006-scope-and-refusal-policy.md) | Layered scope policy with canonical messages | Accepted |
 | [0007](0007-no-build-web-ui.md) | No-build web UI with server-side sanitised rendering | Accepted |
 | [0008](0008-deterministic-evaluation.md) | Deterministic evaluation and golden-set governance | Accepted |
+| [0009](0009-deterministic-facts-model-for-language.md) | Code decides the facts, the model writes the sentence | Accepted |
