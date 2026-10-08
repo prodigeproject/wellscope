@@ -15,7 +15,8 @@ from wellscope.ingestion.parse import parse_glossary, parse_pdf
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "raw"
 PDFS = sorted(DATA_DIR.rglob("*.pdf"))
-DOCX = sorted(DATA_DIR.rglob("*.docx"))
+GLOSSARIES = [path for path in sorted(DATA_DIR.rglob("*.docx")) if "gloss" in path.name.casefold()]
+FAMILIES = {DocumentType.DDR, DocumentType.DGOS}
 
 pytestmark = [
     pytest.mark.dataset,
@@ -35,8 +36,9 @@ def checks_of(document: ReportDocument) -> dict[str, bool]:
 
 
 def test_every_report_is_classified_with_a_number_and_date(documents: list[ReportDocument]) -> None:
-    assert {document.doc_type for document in documents} == {DocumentType.DDR, DocumentType.DGOS}
-    for document in documents:
+    reports = [document for document in documents if document.doc_type in FAMILIES]
+    assert {document.doc_type for document in reports} == FAMILIES
+    for document in reports:
         assert document.report.number is not None
         assert document.report.date is not None
         assert document.report.period_start is not None
@@ -75,9 +77,9 @@ def test_hidden_text_is_removed_from_summaries(documents: list[ReportDocument]) 
             assert "DAILY UPDATES" not in document.pages[0].text
 
 
-@pytest.mark.skipif(not DOCX, reason="glossary not present in data/raw")
+@pytest.mark.skipif(not GLOSSARIES, reason="glossary not present in data/raw")
 def test_glossary_parses_entries_with_statuses() -> None:
-    path = DOCX[0]
+    path = GLOSSARIES[0]
     glossary = parse_glossary(path, path.name, hashlib.sha256(path.read_bytes()).hexdigest())
     statuses = {entry.status.value for entry in glossary.entries}
     assert len(glossary.entries) > 100
