@@ -19,7 +19,9 @@ MAX_PAGES = 200
 WORD_X_TOLERANCE = 1.5
 WORD_Y_TOLERANCE = 2.5
 DEDUPE_TOLERANCE = 1.0
-RUN_GAP = 1.0
+# Glyphs of one string touch (gap ~0); text of the next cell starts after some padding.
+RUN_MAX_GAP = 0.3
+RUN_MAX_KERNING = 0.5
 SAME_BASELINE = 1.0
 VERTICAL_SLACK = 0.5
 MIN_RULE_LENGTH = 2.0
@@ -102,7 +104,7 @@ def _overflow_char_ids(chars: Iterable[dict[str, Any]], borders: Sequence[Rule])
 def _continues(previous: dict[str, Any], char: dict[str, Any]) -> bool:
     return (
         abs(float(char["top"]) - float(previous["top"])) <= SAME_BASELINE
-        and -RUN_GAP <= float(char["x0"]) - float(previous["x1"]) <= RUN_GAP
+        and -RUN_MAX_KERNING <= float(char["x0"]) - float(previous["x1"]) <= RUN_MAX_GAP
     )
 
 
