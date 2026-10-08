@@ -462,7 +462,7 @@
     },
     "Table": {
       "additionalProperties": false,
-      "description": "A ruled table read cell by cell; the first ``header_rows`` rows are headers.",
+      "description": "A ruled table read cell by cell; the first ``header_rows`` rows are headers.\n\n``columns`` names every column with its full header (``Prognosis Depth m TVDSS``), combining\nmulti-row headers and cells that span several columns; it is empty without a header.",
       "properties": {
         "section": {
           "title": "Section",
@@ -476,6 +476,13 @@
           "default": 0,
           "title": "Header Rows",
           "type": "integer"
+        },
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Columns",
+          "type": "array"
         },
         "rows": {
           "items": {

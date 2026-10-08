@@ -16,7 +16,7 @@ from wellscope.domain.text import normalize_for_index
 
 GLOSSARY_DOC_ID = "glossary"
 # Bump when passage or chunk text changes, so indexes built from older text are replaced.
-CHUNK_FORMAT_VERSION = "2"
+CHUNK_FORMAT_VERSION = "3"
 
 
 @dataclass(frozen=True, slots=True)

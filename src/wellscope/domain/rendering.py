@@ -7,10 +7,10 @@ answered from the source instead of being guessed.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 
-from wellscope.domain.documents import DocumentType, Operation, ReportDocument
+from wellscope.domain.documents import DocumentType, Operation, ReportDocument, Table
 from wellscope.domain.glossary import GlossaryEntry, GlossaryStatus
 from wellscope.domain.operation_totals import operation_totals
 
@@ -212,14 +212,27 @@ def _remark_passages(document: ReportDocument) -> Iterator[Passage]:
 
 def _table_passages(document: ReportDocument) -> Iterator[Passage]:
     for index, table in enumerate(document.tables, 1):
-        width = max((len(row) for row in table.rows), default=0)
-        lines = []
-        for row_number, row in enumerate(table.rows, 1):
-            lines.append("| " + " | ".join(cell or " " for cell in row) + " |")
-            if row_number == table.header_rows:
-                lines.append("| " + " | ".join("---" for _ in range(width)) + " |")
         title = SECTION_TITLES.get(table.section, table.section.replace("_", " ").capitalize())
-        yield Passage(f"table:{index}", "table", f"Table: {title}", table.page, "\n".join(lines))
+        body = "\n".join(_table_lines(table))
+        yield Passage(f"table:{index}", "table", f"Table: {title}", table.page, body)
+
+
+def _table_lines(table: Table) -> list[str]:
+    """Markdown rows; flattened column names, when known, replace the raw header rows."""
+    if table.columns:
+        header = [table.columns, ["---"] * len(table.columns)]
+        return [_markdown_row(row) for row in [*header, *table.rows[table.header_rows :]]]
+    width = max((len(row) for row in table.rows), default=0)
+    lines = []
+    for row_number, row in enumerate(table.rows, 1):
+        lines.append(_markdown_row(row))
+        if row_number == table.header_rows:
+            lines.append(_markdown_row(["---"] * width))
+    return lines
+
+
+def _markdown_row(cells: Sequence[str]) -> str:
+    return "| " + " | ".join(cell or " " for cell in cells) + " |"
 
 
 def _page_passages(document: ReportDocument) -> Iterator[Passage]:

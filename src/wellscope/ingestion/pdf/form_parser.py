@@ -86,16 +86,21 @@ def page_texts(pages: Sequence[PageLayout]) -> list[PageText]:
 
 
 def _tables(sections: Sequence[Section]) -> list[Table]:
-    return [
-        Table(
-            section=section.name,
-            page=section.page.number,
-            header_rows=section.spec.header_rows,
-            rows=rows,
-        )
-        for section in sections
-        if section.spec.kind == TABLE_KIND and (rows := section.rows())
-    ]
+    tables = []
+    for section in sections:
+        rows = section.rows() if section.spec.kind == TABLE_KIND else []
+        if rows:
+            header = section.header()
+            tables.append(
+                Table(
+                    section=section.name,
+                    page=section.page.number,
+                    header_rows=header.rows,
+                    columns=list(header.columns),
+                    rows=rows,
+                )
+            )
+    return tables
 
 
 def _report_info(template: FormTemplate, fields: Mapping[str, FieldValue]) -> ReportInfo:
