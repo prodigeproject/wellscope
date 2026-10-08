@@ -33,7 +33,7 @@ Threats are grouped by STRIDE and by the OWASP Top 10 for LLM Applications (2025
 | System prompt leakage (LLM07) | "Show your instructions" | Nothing confidential is in the prompts (they are in the repository); such requests are classed `unsafe` | Golden set |
 | Excessive agency (LLM06) | The model acting on data | No tools or function calling; no write path from the API; no upload or ingest endpoint | Architecture tests (`api` cannot import `ingestion` or `storage`) |
 | Misinformation (LLM09) | Hallucinated or mis-copied facts | Answers only from cited sources; verifier for citations, numbers, times and dates against the cited sources only (never the question), with tight rules for calculated values and one regeneration, then an *Unverified figures* label; an answer citing nothing is replaced by the canonical *not found* | `tests/unit/qa/test_verifier.py`, `tests/unit/qa/test_service.py`, golden set |
-| Unbounded consumption (LLM10), denial of service | Request floods, huge inputs, costly prompts | Rate limit per client (20/minute, bursts of 5, bounded table); request bodies over 32 KB rejected before parsing; question length limit; history limited to 3 turns; output token caps; model timeouts; at most 4 answers in progress, each slot held until its worker has stopped; an abandoned answer stops at its next stage | `tests/api/test_api.py`, `tests/unit/api/test_ratelimit.py`, `tests/unit/api/test_sse.py` |
+| Unbounded consumption (LLM10), denial of service | Request floods, huge inputs, costly prompts | Rate limit per connecting address (20/minute, bursts of 5, bounded table; `X-Forwarded-For` ignored); request bodies over 32 KB rejected before parsing; question length limit; history limited to 3 turns; output token caps; model timeouts; at most 4 answers in progress, each slot held until its worker has stopped; an abandoned answer stops at its next stage; an answer not ready after 170 s ends with a timeout message | `tests/api/test_api.py`, `tests/unit/api/test_ratelimit.py`, `tests/unit/api/test_sse.py`, `tests/integration/test_cli.py` |
 | DNS rebinding | A web page makes the browser call `127.0.0.1:8000` under its own host name | Host header allow-list (`WELLSCOPE_ALLOWED_HOSTS`); no CORS headers | `tests/api/test_api.py::test_unknown_hosts_are_refused` |
 | Information leak in server errors | An unexpected exception | Errors are rendered inside the request guard: generic message, request id, security headers and `no-store`; details only in the log | `tests/api/test_api.py::test_unexpected_errors_keep_security_headers_and_the_request_id` |
 | Clickjacking, MIME sniffing, referrer leaks | Browser behaviour | `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, COOP and CORP same-origin, restrictive `Permissions-Policy`; API responses `Cache-Control: no-store` | `tests/api/test_api.py` |
@@ -62,8 +62,10 @@ Run on 8 October 2026 against the commit being submitted.
   still bias an answer about itself; it cannot reach tools, other users or the file system.
 - No authentication: the app is meant for one user on a local machine. Exposing it on a network
   needs a reverse proxy with authentication and TLS.
-- The rate limiter lives in one process and keys on the client address; behind a proxy it sees
-  the proxy's address.
+- The rate limiter lives in one process and keys on the address of the peer that connects.
+  `X-Forwarded-For` is ignored (otherwise any local caller could pick its own key), so behind a
+  reverse proxy every user shares the proxy's budget; a deployment behind a proxy should rate
+  limit there.
 - Documents are sent to the model provider for answering (`store=false`, but they do leave the
   machine). Confidential reports need an approved provider agreement.
 - The visibility filter can be fooled by PDF features it does not model (clipping paths,

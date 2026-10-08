@@ -92,7 +92,14 @@ or *"What does BHA stand for?"*.
 
 ## Installation
 
-**With uv (recommended):**
+**With uv (recommended).** Install uv once if you do not have it (or see the
+[other methods](https://docs.astral.sh/uv/getting-started/installation/)):
+
+```bash
+pip install uv
+```
+
+Then, in the project folder:
 
 ```bash
 uv sync
@@ -112,11 +119,9 @@ Activate it (`.venv\Scripts\activate` on Windows, `source .venv/bin/activate` el
 pip install .
 ```
 
-Commands then run as `wellscope …`. Check the setup at any time with:
-
-```bash
-uv run wellscope doctor --online
-```
+Commands then run as `wellscope …` (without `uv run`). Check the setup at any time with
+`uv run wellscope doctor` (or `wellscope doctor` with pip); add `--online` to also check that
+each configured model answers (a few tokens on your key).
 
 `doctor` reports the Python version, whether the key is set (never its value), the data folder,
 the index and, with `--online`, whether each configured model answers.
@@ -124,7 +129,14 @@ the index and, with `--online`, whether each configured model answers.
 ## Configuration
 
 Settings come from environment variables or a `.env` file in the project folder. Copy
-[`.env.example`](.env.example) to `.env`; only `OPENAI_API_KEY` is required.
+[`.env.example`](.env.example) to `.env` and put your key in it; only `OPENAI_API_KEY` is
+required:
+
+```bash
+cp .env.example .env
+```
+
+(`copy .env.example .env` in the Windows command prompt.)
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -138,7 +150,7 @@ Settings come from environment variables or a `.env` file in the project folder.
 | `WELLSCOPE_ALLOWED_HOSTS` | `["127.0.0.1", "localhost", "[::1]"]` | Host names the web app answers to. |
 | `WELLSCOPE_MAX_QUESTION_CHARS` | `1000` | Longest accepted question. |
 | `WELLSCOPE_RATE_LIMIT_PER_MIN` | `20` | Questions per minute per client (bursts of 5). |
-| `WELLSCOPE_LLM_TIMEOUT_S` | `60` | Timeout of one model call (retried twice on 429/5xx). |
+| `WELLSCOPE_LLM_TIMEOUT_S` | `60` | Timeout of one model call (retried twice on 429/5xx). Whatever the retries, the web app ends an answer that is not ready after 170 s with a *try again* message. |
 | `WELLSCOPE_CONTEXT_TOKEN_BUDGET` | `24000` | Context size; reports that fit are read in full, larger sets are searched. |
 | `WELLSCOPE_LOG_LEVEL` | `INFO` | JSON logs with request ids. |
 | `WELLSCOPE_LOG_QUESTIONS` | `false` | Log question text (off by default for privacy). |
@@ -251,7 +263,7 @@ flowchart LR
 {
   "schema_version": "1.0",
   "generated_at": "2026-01-16T08:00:00Z",
-  "parser_version": "1.3.0",
+  "parser_version": "1.4.1",
   "index_version": "4f1c2a9e7b30",
   "documents": [
     {
@@ -288,7 +300,7 @@ empty fields are kept (an empty `raw` means *not recorded*):
     "relative_path": "Datasets/Daily Operation Report/WELL-A-1_DDR_12.pdf",
     "sha256": "9b0e…",
     "page_count": 7,
-    "parser": {"name": "wellscope", "version": "1.3.0", "template": "ddr@1"}
+    "parser": {"name": "wellscope", "version": "1.4.1", "template": "ddr@1"}
   },
   "well": {"name": "WELL-A-1", "wellbore": "OH", "field": "FIELD-A", "block": "BLK-1",
            "region": "R1", "rig": "RIG-7", "operator": "ACME ENERGY"},
@@ -338,7 +350,7 @@ ruled tables in `tables`.
 {
   "schema_version": "1.0",
   "source": {"file_name": "Glossary.docx", "relative_path": "Glossary.docx", "sha256": "51aa…",
-             "page_count": 0, "parser": {"name": "wellscope", "version": "1.3.0", "template": "glossary@1"}},
+             "page_count": 0, "parser": {"name": "wellscope", "version": "1.4.1", "template": "glossary@1"}},
   "entries": [
     {"id": "gl-abc", "term": "ABC", "aliases": ["ABC", "A.B.C."], "expansion": "Alpha Beta Charlie",
      "description": "Example definition.", "status": "confirmed", "senses": [],
@@ -392,7 +404,7 @@ uv run pytest
 uv run ruff check . && uv run ruff format --check . && uv run mypy
 ```
 
-- 382 tests (unit, integration, API, contract and architecture), 95% line coverage; tests that
+- 388 tests (unit, integration, API, contract and architecture), 95% line coverage; tests that
   need the real dataset are marked `dataset` and skip when it is absent; no test calls OpenAI.
 - `pre-commit install` enables the same checks before each commit, plus secret and dataset
   guards.

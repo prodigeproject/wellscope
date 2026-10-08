@@ -59,6 +59,17 @@ reproduced each finding with throwaway scripts. Every finding was fixed test fir
 | R11 | Low | A term repeated across glossary tables produced duplicate ids and a failed index build. | Ids are numbered until unique. |
 | R12 | Low | A slow full-report response could overwrite a newer one. | Stale responses are ignored. |
 
+A second pass (a security and compliance audit, plus tracing the two remaining evaluation
+failures to their cause) found five more:
+
+| # | Severity | Finding | Fix |
+|---|---|---|---|
+| R13 | Medium | The analyzer rewrote questions that needed no rewriting and could change their meaning ("what drill was conducted" became "what drilling was conducted", so the answer gave the drilling event instead of the safety drill). | Only follow-ups are rewritten; a question without a conversation keeps its exact words. |
+| R14 | Low | Abbreviated labels did not match questions in plain words: a DDR records mud weight as "Density (ppg)" in the mud table, so a trend question skipped it. | Passages and the catalog give such labels their everyday name ("Density (ppg) (mud weight)", "Drill type (safety drill conducted)"). |
+| R15 | Low | No overall time limit: with retries, one answer could in theory exceed the three minutes of the brief. | The web app ends an answer not ready after 170 s with a *try again* message; the worker stops at its next stage. |
+| R16 | Low | The server trusted `X-Forwarded-For` from local clients, so a local caller could rotate its rate-limit key. | Proxy headers are ignored; the `server` header is no longer sent. |
+| R17 | Low | Report labels (which can come from a PDF title) reached the analyzer prompt unescaped. | Escaped like the question and the history. |
+
 ## 5. Known limitations
 
 - **Formats.** Templates cover the DDR and DGOS layouts of the sample. A report from another
