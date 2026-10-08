@@ -45,3 +45,26 @@ def test_a_closed_stream_keeps_its_slot_until_the_worker_stops_at_the_next_stage
         assert service.stopped_early.is_set()
 
     asyncio.run(scenario())
+
+
+def test_an_answer_past_the_deadline_ends_with_a_timeout_error_and_keeps_its_slot() -> None:
+    async def scenario() -> None:
+        slots = asyncio.Semaphore(1)
+        service = SlowService()
+        question = Question("q", (), "rid")
+        stream = answer_events(service, question, slots, deadline_s=0.05)  # type: ignore[arg-type]
+        events = [event async for event in stream]
+        assert '"analyzing"' in events[0]
+        assert events[-1].startswith("event: error")
+        assert '"answer_timeout"' in events[-1]
+        assert '"rid"' in events[-1]
+        assert slots.locked()
+        service.release.set()
+        for _ in range(100):
+            if not slots.locked():
+                break
+            await asyncio.sleep(0.02)
+        assert not slots.locked()
+        assert service.stopped_early.is_set()
+
+    asyncio.run(scenario())

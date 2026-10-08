@@ -112,7 +112,14 @@ def serve(
         overrides = {"host": host or settings.host, "port": port or settings.port}
         settings = settings.model_copy(update=overrides)
     console.print(f"WellScope on [bold]http://{settings.host}:{settings.port}[/] (Ctrl+C to stop)")
-    uvicorn.run(web_app(settings), host=settings.host, port=settings.port, log_config=None)
+    uvicorn.run(
+        web_app(settings),
+        host=settings.host,
+        port=settings.port,
+        log_config=None,
+        proxy_headers=False,  # the rate limiter keys on the real peer address
+        server_header=False,
+    )
 
 
 @app.command()
