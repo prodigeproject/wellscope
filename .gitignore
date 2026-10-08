@@ -1,0 +1,48 @@
+# --- Secrets -------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# --- Data: datasets, parsed output and databases are never committed -----
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+*.pdf
+*.docx
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Private evaluation material (contains dataset facts) and raw run reports
+evals/private/
+reports/
+
+# --- Python --------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# --- Tooling, OS, IDE ----------------------------------------------------
+.idea/
+.vscode/
+*.log
+.DS_Store
+Thumbs.db
+test-results/
+playwright-report/
