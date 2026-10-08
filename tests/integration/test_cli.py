@@ -64,3 +64,13 @@ def test_eval_runs_a_golden_set_and_writes_reports(
     assert "Accuracy" in result.output
     assert list(reports.glob("eval-*.md"))
     assert list((tmp_path / "evals" / "private" / "runs").glob("eval-*.jsonl"))
+
+
+def test_ingest_reports_a_missing_data_folder_and_exits_with_an_error(
+    offline: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("WELLSCOPE_DATA_DIR", str(offline.parent / "does-not-exist"))
+    get_settings.cache_clear()
+    result = runner.invoke(app, ["ingest"])
+    assert result.exit_code == 1
+    assert "does not exist" in result.output
