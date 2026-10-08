@@ -39,7 +39,27 @@ use generic values; the dataset itself is not reproduced here.
 | 19 | The web app's scripts did not load on some Windows machines. | The Windows registry can map `.js` to `text/plain`, which browsers refuse for module scripts. | The app registers `text/javascript` and `text/css` explicitly. |
 | 20 | GitHub Actions runs end with a start-up failure, including GitHub's own Dependabot jobs. | An account-level restriction on the private repository: GitHub reports no job at all, and its own Dependabot jobs fail the same way; the pinned action versions exist. | The same checks run locally and in pre-commit (lint, types, tests with an 85% coverage gate, dependency audit). The workflows will run once Actions is enabled for the account or the repository is public. |
 
-## 4. Known limitations
+## 4. Independent review
+
+After the evaluation reached 97/97, a separate reviewer read the code adversarially and
+reproduced each finding with throwaway scripts. Every finding was fixed test first:
+
+| # | Severity | Finding | Fix |
+|---|---|---|---|
+| R1 | High | The verifier passed wrong figures: a token counted as a small count when either reading was at most 10 (`2,345`, `9.9`), the question was evidence, and pairs of any two numbers in the answer accepted about one random integer in five. | Only plain integers up to 10 are counts; evidence is the cited sources' text, label and period; calculated values must come from figures in the same or the previous sentence. |
+| R2 | High | One undated report next to a dated one aborted the whole ingest (a date compared with a string in a sort). | A total order: type, undated last, date, id. |
+| R3 | Medium | An answer still citing nothing after the retry was shown as answered. | It is replaced by the not-found message. |
+| R4 | Medium | A second rejected model parameter escaped as a raw provider error; concurrent calls could drop the same parameter twice. | Step-wise relaxation in a loop, under a lock; every failure becomes a `ModelError`; evaluation items are isolated. |
+| R5 | Medium | A disconnected stream released its concurrency slot while the model call went on. | The slot is held until the worker stops; the pipeline stops at its next stage. |
+| R6 | Medium | "laporan 3 hari terakhir" was read as report number 3. | Numbers followed by time units or last/latest/first are not report numbers. |
+| R7 | Medium | Enter while an answer streamed cancelled it and dropped the new question. | Enter waits; only the Stop button cancels. |
+| R8 | Medium | A mistyped data folder wiped every output and swapped in an empty index. | A missing or empty data folder is an error and the outputs stay untouched. |
+| R9 | Low–medium | Server errors bypassed the security headers and lost the request id in the log. | The request guard renders them. |
+| R10 | Low | Any capitalised word found in the reports overrode an out-of-scope verdict. | Only code-like names (`TAPIS-C`, `K-28`, `D18`) count. |
+| R11 | Low | A term repeated across glossary tables produced duplicate ids and a failed index build. | Ids are numbered until unique. |
+| R12 | Low | A slow full-report response could overwrite a newer one. | Stale responses are ignored. |
+
+## 5. Known limitations
 
 - **Formats.** Templates cover the DDR and DGOS layouts of the sample. A report from another
   system is ingested as a generic document (page text and ruled tables): answerable, but without
@@ -56,7 +76,7 @@ use generic values; the dataset itself is not reproduced here.
 - **Visibility filter** handles fills and colours, not clipping paths or transparency groups in
   general; text clipped by a cell is treated as part of its value.
 
-## 5. Next improvements
+## 6. Next improvements
 
 | Improvement | Value |
 |---|---|

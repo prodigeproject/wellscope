@@ -34,8 +34,9 @@ that points back to the topics it can answer.
 ## Features
 
 - **Answers only from the documents**, with a citation for every fact, in the language of the
-  question (Indonesian or English). Numbers, codes and dates are checked against the cited
-  passages before an answer is shown; an answer that still fails is labelled *Unverified*.
+  question (Indonesian or English). Numbers, times and dates are checked against the cited
+  passages before an answer is shown; an answer whose figures still fail after one retry is
+  labelled *Unverified figures*, and one that cites nothing is not shown at all.
 - **Consistent refusals**: questions outside the documents get one canonical message that
   redirects to supported topics; questions about reports that do not exist get a *not found*
   message listing the reports that do.
@@ -421,7 +422,7 @@ Threat model, residual risks and scan results: [docs/SECURITY.md](docs/SECURITY.
 | Port 8000 is in use | `uv run wellscope serve --port 8001`. |
 | Opening the app via another host name or IP returns 400 | Add the name to `WELLSCOPE_ALLOWED_HOSTS`, e.g. `["127.0.0.1", "localhost", "my-host"]`. |
 | Garbled characters in a Windows console | Use Windows Terminal; WellScope already writes UTF-8. |
-| Answers marked *Unverified figures* | A number in the answer was not found in the cited passages after one retry; check the sources panel. |
+| Answers marked *Unverified figures* | A figure in the answer was neither in the cited passages nor calculated from them, even after one retry; check the sources panel. |
 
 ## Project documentation
 
