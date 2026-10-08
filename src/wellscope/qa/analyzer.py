@@ -28,7 +28,6 @@ from wellscope.retrieval.models import DocumentFilter, Intent
 logger = logging.getLogger(__name__)
 ANALYZER_MAX_TOKENS = 500
 HISTORY_ANSWER_CHARS = 400
-TIME_FORMAT = "%Y-%m-%d %H:%M"
 _GLOSSARY_QUESTION = re.compile(
     r"\b(?:apa\s+itu|apa\s+arti|artinya|kepanjangan|singkatan|definisi|stand\s+for|"
     r"meaning|mean|abbreviation|definition)\b",
@@ -187,7 +186,9 @@ def _by_rules(question: str, references: References) -> Analysis:
 
 def _user_message(question: str, history: Sequence[Turn], catalog: Sequence[CatalogEntry]) -> str:
     lines = ["Report catalog:"]
-    lines += [f"- {entry.label}, {_period(entry)}" for entry in catalog] or ["- (no reports)"]
+    lines += [
+        f"- {entry.label}, covers {entry.period or 'an unstated period'}" for entry in catalog
+    ] or ["- (no reports)"]
     if history:
         lines += ["", "Conversation so far (oldest first):"]
         for turn in history:
@@ -195,12 +196,6 @@ def _user_message(question: str, history: Sequence[Turn], catalog: Sequence[Cata
             lines.append(f"Assistant: {_escape(turn.answer[:HISTORY_ANSWER_CHARS])}")
     lines += ["", "Question to analyse:", f"<question>{_escape(question)}</question>"]
     return "\n".join(lines)
-
-
-def _period(entry: CatalogEntry) -> str:
-    if entry.period_start is None or entry.period_end is None:
-        return "period not stated"
-    return f"covers {entry.period_start:{TIME_FORMAT}} to {entry.period_end:{TIME_FORMAT}}"
 
 
 def _escape(text: str) -> str:

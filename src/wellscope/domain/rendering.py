@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 from wellscope.domain.documents import DocumentType, Operation, ReportDocument
 from wellscope.domain.glossary import GlossaryEntry, GlossaryStatus
+from wellscope.domain.operation_totals import operation_totals
 
 BLANK = "(blank)"
 SUMMARY_FIELDS = (
@@ -90,6 +91,7 @@ def document_passages(document: ReportDocument) -> list[Passage]:
     passages = [
         *_field_passages(document),
         *_operation_passages(document),
+        *_totals_passages(document),
         *_next_day_passages(document),
         *_remark_passages(document),
         *_table_passages(document),
@@ -162,6 +164,13 @@ def _operation_passages(document: ReportDocument) -> Iterator[Passage]:
             page=operation.page,
             body=f"{_operation_summary(operation)}\n{operation.description}",
         )
+
+
+def _totals_passages(document: ReportDocument) -> Iterator[Passage]:
+    totals = operation_totals(document.operations)
+    if totals:
+        page = document.operations[0].page
+        yield Passage("operations:totals", "totals", "Operation totals (computed)", page, totals)
 
 
 def _operation_summary(operation: Operation) -> str:

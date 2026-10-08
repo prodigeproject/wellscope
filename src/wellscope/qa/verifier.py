@@ -1,18 +1,21 @@
-"""Deterministic answer checks: cited sources exist, and every number comes from them.
+"""Deterministic answer checks: cited sources exist, and every figure comes from them.
 
-A number passes when it appears in a cited source or in the question, is a small count (at most
-10), or is the sum, difference or ratio of two numbers that pass. Codes such as ``D18`` and
-citation ids are ignored. Numbers match under English and Indonesian separators alike.
+Times (``17:00``) and dates (``19/07/2026`` = ``19 Juli 2026``) must appear in a cited source or
+in the question. Other numbers pass when they appear there too, are small counts (at most 10),
+or are the sum, difference or ratio of two numbers that pass. Codes such as ``D18`` and citation
+ids are ignored, and numbers match under English and Indonesian separators alike.
 """
 
 from __future__ import annotations
 
+import datetime as dt
 import math
 import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from itertools import permutations
 
+from wellscope.domain.dates import date_matches
 from wellscope.domain.numbers import extract_numbers, number_tokens
 from wellscope.qa.answerer import Draft
 from wellscope.retrieval.models import Source
@@ -22,8 +25,10 @@ PERCENT = 100
 EXACT_DIGITS = 6
 DERIVED_REL_TOLERANCE = 0.005
 DERIVED_ABS_TOLERANCE = 0.05
+MIDNIGHT = ("24:00", "00:00")
 _CITATION = re.compile(r"\[\s*(S\d+(?:\s*[,;]\s*S\d+)*)\s*\]")
 _CODE = re.compile(r"\b[A-Za-z]+\d[\w-]*")
+_TIME = re.compile(r"(?<![\d:.])(\d{1,2}):(\d{2})(?![\d:])")
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,8 +53,15 @@ class Verification:
             problems.append("the answer cites no source")
         if self.unsupported_numbers:
             numbers = ", ".join(self.unsupported_numbers)
-            problems.append(f"these numbers are not in the cited sources: {numbers}")
+            problems.append(f"these values are not in the cited sources: {numbers}")
         return "; ".join(problems) + "."
+
+
+@dataclass(frozen=True, slots=True)
+class _Facts:
+    numbers: set[float]
+    times: set[str]
+    dates: set[dt.date]
 
 
 def cited_ids(draft: Draft) -> list[str]:
@@ -69,7 +81,7 @@ def verify(draft: Draft, sources: Sequence[Source], question: str) -> Verificati
     by_id = {source.id: source for source in sources}
     cited = cited_ids(draft)
     known = [by_id[source_id] for source_id in cited if source_id in by_id]
-    allowed = _values(question) | {value for source in known for value in _values(source.text)}
+    allowed = _facts([question, *(source.text for source in known)])
     return Verification(
         unknown_citations=tuple(source_id for source_id in cited if source_id not in by_id),
         missing_citation=not known,
@@ -77,21 +89,50 @@ def verify(draft: Draft, sources: Sequence[Source], question: str) -> Verificati
     )
 
 
-def _unsupported(text: str, allowed: set[float]) -> tuple[str, ...]:
-    exact = {round(value, EXACT_DIGITS) for value in allowed}
+def _facts(texts: Iterable[str]) -> _Facts:
+    facts = _Facts(set(), set(), set())
+    for text in texts:
+        remainder, times, dates = _split(text)
+        facts.numbers.update(
+            round(abs(value), EXACT_DIGITS) for value in extract_numbers(remainder)
+        )
+        facts.times.update(time for _, time in times)
+        facts.dates.update(date for _, date in dates)
+    return facts
+
+
+def _split(text: str) -> tuple[str, list[tuple[str, str]], list[tuple[str, dt.date]]]:
+    """Text without citations, dates, times and codes; plus the dates and times it held."""
+    text = _CITATION.sub(" ", text)
+    matches = date_matches(text)
+    for match in reversed(matches):
+        text = f"{text[: match.start]} {text[match.end :]}"
+    times = [(found.group(), _clock(found)) for found in _TIME.finditer(text)]
+    text = _CODE.sub(" ", _TIME.sub(" ", text))
+    return text, times, [(match.text, match.value) for match in matches]
+
+
+def _clock(match: re.Match[str]) -> str:
+    clock = f"{int(match.group(1)):02d}:{match.group(2)}"
+    return MIDNIGHT[1] if clock == MIDNIGHT[0] else clock
+
+
+def _unsupported(text: str, allowed: _Facts) -> tuple[str, ...]:
+    remainder, times, dates = _split(text)
+    problems = [spelled for spelled, time in times if time not in allowed.times]
+    problems += [spelled for spelled, date in dates if date not in allowed.dates]
     supported: list[float] = []
     pending: list[tuple[str, set[float]]] = []
-    for token, candidates in number_tokens(_without_codes(text)):
+    for token, candidates in number_tokens(remainder):
         values = {abs(value) for value in candidates}
-        matched = [value for value in values if round(value, EXACT_DIGITS) in exact]
+        matched = [value for value in values if round(value, EXACT_DIGITS) in allowed.numbers]
         if matched or min(values) <= SMALL_COUNT:
             supported.extend(matched or [min(values)])
         else:
             pending.append((token, values))
     derived = _derived(supported)
-    return tuple(
-        token for token, values in pending if not any(_near(value, derived) for value in values)
-    )
+    problems += [token for token, values in pending if not any(_near(v, derived) for v in values)]
+    return tuple(problems)
 
 
 def _derived(values: Sequence[float]) -> list[float]:
@@ -109,11 +150,3 @@ def _near(value: float, candidates: Iterable[float]) -> bool:
         math.isclose(value, candidate, rel_tol=DERIVED_REL_TOLERANCE, abs_tol=DERIVED_ABS_TOLERANCE)
         for candidate in candidates
     )
-
-
-def _values(text: str) -> set[float]:
-    return {abs(value) for value in extract_numbers(_without_codes(text))}
-
-
-def _without_codes(text: str) -> str:
-    return _CODE.sub(" ", _CITATION.sub(" ", text))

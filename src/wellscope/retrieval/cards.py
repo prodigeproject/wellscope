@@ -6,19 +6,12 @@ from collections.abc import Mapping, Sequence
 
 from wellscope.domain.catalog import CatalogEntry, ConflictRecord
 
-TIME_FORMAT = "%Y-%m-%d %H:%M"
-
 
 def catalog_card(catalog: Sequence[CatalogEntry]) -> str:
     """One line per report: label, well, covered period, data quality and key facts."""
     lines = [f"[Report catalog: {len(catalog)} reports]"]
     for entry in catalog:
-        if entry.period_start and entry.period_end:
-            period = (
-                f"covers {entry.period_start:{TIME_FORMAT}} to {entry.period_end:{TIME_FORMAT}}"
-            )
-        else:
-            period = "period not stated"
+        period = f"covers {entry.period}" if entry.period else "period not stated"
         parts = [entry.label, entry.well or "well not stated", period]
         if entry.quality_status != "ok":
             parts.append(f"data-quality {entry.quality_status}")

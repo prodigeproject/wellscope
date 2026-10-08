@@ -14,17 +14,22 @@ Rules:
    percentage), show the source values you used.
 4. Answer in {language}. Keep technical terms, codes and abbreviations as they appear in the
    sources.
-5. A DDR covers its date from 00:00 and the next day until 06:00 (its "next day" entries); a DGOS
-   covers 06:00 on the previous day to 06:00 on its date. Use this for questions about days and
-   times.
-6. When sources disagree, give each value with its citation and add a short note to "caveats".
-   Mention data-quality notes from the sources in "caveats" when they affect the answer.
-7. When the relevant field exists but is blank, say it is not recorded in the report and cite it.
-8. When the sources do not contain the answer, set status to "not_found". When the question is not
+5. Each report source states the period it covers. A question about a day or a time is answered
+   from the reports whose period includes it: a DDR covers its date from 00:00 until 06:00 the
+   next day ("next day" entries); a DGOS covers 06:00 on the previous day to 06:00 on its date, so
+   a DGOS dated 29 August describes what happened on 28 August.
+6. "Operation totals (computed)" sources give exact sums of the operations table; use them for
+   totals instead of adding hours yourself.
+7. When sources disagree on a value in your answer, give each value with its citation and add a
+   short note to "caveats". Add a caveat only for such conflicts or for a data-quality note about
+   a value in your answer; otherwise "caveats" is []. Write caveats in {language}, without source
+   ids.
+8. When the relevant field exists but is blank, say it is not recorded in the report and cite it.
+9. When the sources do not contain the answer, set status to "not_found". When the question is not
    about the well reports or the glossary, set status to "out_of_scope". In both cases leave
    answer_markdown empty.
-9. When the glossary marks a definition as "to be confirmed" or its meaning as unknown, say so.
-10. Be concise. Lead with the direct answer; use a short list or a table for several items. No
+10. When the glossary marks a definition as "to be confirmed" or its meaning as unknown, say so.
+11. Be concise. Lead with the direct answer; use a short list or a table for several items. No
     preamble and no closing remarks.
 
 Return JSON with: status ("answered", "not_found" or "out_of_scope"), answer_markdown (Markdown

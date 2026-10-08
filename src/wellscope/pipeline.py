@@ -21,6 +21,7 @@ from wellscope.domain.catalog import (
     QualityReport,
     QuarantinedFile,
 )
+from wellscope.domain.chunks import CHUNK_FORMAT_VERSION
 from wellscope.domain.documents import ReportDocument
 from wellscope.domain.glossary import Glossary
 from wellscope.errors import WellScopeError
@@ -176,7 +177,7 @@ def _glossary_summary(store: JsonStore, glossary: Glossary | None) -> GlossarySu
 
 def _index_version(documents: Sequence[ReportDocument], glossary: Glossary | None) -> str:
     parts = sorted(f"{document.doc_id}:{document.source.sha256}" for document in documents)
-    parts += [glossary.source.sha256 if glossary else "", PARSER_VERSION]
+    parts += [glossary.source.sha256 if glossary else "", PARSER_VERSION, CHUNK_FORMAT_VERSION]
     return hashlib.sha256("\n".join(parts).encode()).hexdigest()[:INDEX_VERSION_LENGTH]
 
 

@@ -10,6 +10,8 @@ from pydantic import Field
 from wellscope.domain.base import StrictModel
 from wellscope.domain.documents import SCHEMA_VERSION, DocumentType, Severity
 
+PERIOD_FORMAT = "%Y-%m-%d %H:%M"
+
 
 class ManifestDocument(StrictModel):
     """One parsed report as listed in the manifest."""
@@ -105,6 +107,13 @@ class CatalogEntry:
     period_end: dt.datetime | None
     quality_status: str
     summary: str
+
+    @property
+    def period(self) -> str:
+        """The covered period, such as ``2026-07-19 00:00 to 2026-07-20 06:00``, or ``""``."""
+        if self.period_start is None or self.period_end is None:
+            return ""
+        return f"{self.period_start:{PERIOD_FORMAT}} to {self.period_end:{PERIOD_FORMAT}}"
 
 
 @dataclass(frozen=True, slots=True)

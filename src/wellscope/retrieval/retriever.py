@@ -15,7 +15,13 @@ from wellscope.domain.rendering import glossary_passage
 from wellscope.retrieval.cards import catalog_card, conflict_card
 from wellscope.retrieval.context import SourceBuilder, estimate_tokens
 from wellscope.retrieval.glossary_index import GlossaryHit, GlossaryIndex
-from wellscope.retrieval.models import Intent, Retrieval, RetrievalMode, RetrievalQuery
+from wellscope.retrieval.models import (
+    Evidence,
+    Intent,
+    Retrieval,
+    RetrievalMode,
+    RetrievalQuery,
+)
 from wellscope.retrieval.ports import ReportIndex
 from wellscope.retrieval.search import HybridSearch
 from wellscope.retrieval.temporal import resolve
@@ -29,6 +35,8 @@ CONFLICTS_DOC_ID = "conflicts"
 GLOSSARY_LABEL = "Glossary"
 CATALOG_LABEL = "Report catalog"
 CONFLICTS_LABEL = "Data conflicts"
+
+Reports = Mapping[str, CatalogEntry]
 
 
 class Retriever:
@@ -58,19 +66,18 @@ class Retriever:
         hits = self.glossary_hits(query.question, query.glossary_terms)[:GLOSSARY_LIMIT]
         for hit in hits:
             body = glossary_passage(hit.entry).body
-            builder.add(GLOSSARY_DOC_ID, GLOSSARY_LABEL, hit.entry.term, None, body)
+            builder.add(Evidence(GLOSSARY_DOC_ID, GLOSSARY_LABEL, hit.entry.term, None, body))
         glossary_ids = tuple(hit.entry.id for hit in hits)
         if resolution.unmatched:
             return Retrieval(builder.sources, (), glossary_ids, "none", unmatched_filter=True)
-        labels = {entry.doc_id: entry.label for entry in catalog} | {
-            GLOSSARY_DOC_ID: GLOSSARY_LABEL
-        }
+        reports = {entry.doc_id: entry for entry in catalog}
         unconstrained = not query.filters.constrained and query.intent is not Intent.GLOSSARY
         if query.intent in CATALOG_INTENTS or unconstrained:
-            builder.add(CATALOG_DOC_ID, CATALOG_LABEL, "All reports", None, catalog_card(catalog))
+            card = catalog_card(catalog)
+            builder.add(Evidence(CATALOG_DOC_ID, CATALOG_LABEL, "All reports", None, card))
         if query.intent is not Intent.GLOSSARY:
-            self._add_conflicts(builder, resolution.entries, labels)
-        mode = self._add_evidence(builder, query, resolution.entries, labels, bool(hits))
+            self._add_conflicts(builder, resolution.entries, reports)
+        mode = self._add_evidence(builder, query, resolution.entries, reports, bool(hits))
         doc_ids = tuple(entry.doc_id for entry in resolution.entries)
         return Retrieval(builder.sources, doc_ids, glossary_ids, mode)
 
@@ -79,7 +86,7 @@ class Retriever:
         builder: SourceBuilder,
         query: RetrievalQuery,
         entries: Sequence[CatalogEntry],
-        labels: Mapping[str, str],
+        reports: Reports,
         has_glossary: bool,
     ) -> RetrievalMode:
         doc_ids = [entry.doc_id for entry in entries]
@@ -88,21 +95,21 @@ class Retriever:
         if query.intent is Intent.GLOSSARY:
             if not has_glossary:
                 found = self._search.search(query.texts, [GLOSSARY_DOC_ID], GLOSSARY_LIMIT)
-                _add_chunks(builder, self._index.chunks(found), labels)
+                _add_chunks(builder, self._index.chunks(found), reports)
             examples = self._search.search(query.texts, doc_ids, USAGE_EXAMPLES)
-            _add_chunks(builder, self._index.chunks(examples), labels)
+            _add_chunks(builder, self._index.chunks(examples), reports)
             return "glossary"
         position = {doc_id: rank for rank, doc_id in enumerate(doc_ids)}
         chunks = sorted(self._index.document_chunks(doc_ids), key=lambda c: position[c.doc_id])
         if sum(estimate_tokens(chunk.text) for chunk in chunks) <= builder.remaining:
-            _add_chunks(builder, chunks, labels)
+            _add_chunks(builder, chunks, reports)
             return "full"
         ranked = self._search.search(query.texts, doc_ids, SEARCH_LIMIT)
-        _add_chunks(builder, self._index.chunks(ranked), labels)
+        _add_chunks(builder, self._index.chunks(ranked), reports)
         return "search"
 
     def _add_conflicts(
-        self, builder: SourceBuilder, entries: Sequence[CatalogEntry], labels: Mapping[str, str]
+        self, builder: SourceBuilder, entries: Sequence[CatalogEntry], reports: Reports
     ) -> None:
         doc_ids = {entry.doc_id for entry in entries}
         relevant = [
@@ -111,8 +118,12 @@ class Retriever:
             if any(doc_id in doc_ids for doc_id, _ in conflict.values)
         ]
         if relevant:
+            labels = {doc_id: entry.label for doc_id, entry in reports.items()}
             card = conflict_card(relevant, labels)
-            builder.add(CONFLICTS_DOC_ID, CONFLICTS_LABEL, "Cross-report checks", None, card)
+            evidence = Evidence(
+                CONFLICTS_DOC_ID, CONFLICTS_LABEL, "Cross-report checks", None, card
+            )
+            builder.add(evidence)
 
     def _glossary_index(self) -> GlossaryIndex:
         version = self._index.version()
@@ -121,9 +132,14 @@ class Retriever:
         return self._glossary[1]
 
 
-def _add_chunks(
-    builder: SourceBuilder, chunks: Sequence[ChunkRecord], labels: Mapping[str, str]
-) -> None:
+def _add_chunks(builder: SourceBuilder, chunks: Sequence[ChunkRecord], reports: Reports) -> None:
     for chunk in chunks:
-        label = labels.get(chunk.doc_id, chunk.doc_id)
-        builder.add(chunk.doc_id, label, chunk.title, chunk.page, chunk.text)
+        report = reports.get(chunk.doc_id)
+        if report is None:
+            label = GLOSSARY_LABEL if chunk.doc_id == GLOSSARY_DOC_ID else chunk.doc_id
+            evidence = Evidence(chunk.doc_id, label, chunk.title, chunk.page, chunk.text)
+        else:
+            evidence = Evidence(
+                chunk.doc_id, report.label, chunk.title, chunk.page, chunk.text, report.period
+            )
+        builder.add(evidence)

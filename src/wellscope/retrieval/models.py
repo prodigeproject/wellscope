@@ -63,6 +63,18 @@ class RetrievalQuery:
 
 
 @dataclass(frozen=True, slots=True)
+class Evidence:
+    """A passage chosen for the model, before it is numbered; ``period`` is what it covers."""
+
+    doc_id: str
+    label: str
+    section: str
+    page: int | None
+    text: str
+    period: str = ""
+
+
+@dataclass(frozen=True, slots=True)
 class Source:
     """One numbered piece of evidence shown to the model and cited as ``[S1]``."""
 
@@ -72,6 +84,7 @@ class Source:
     section: str
     page: int | None
     text: str
+    period: str = ""
 
 
 @dataclass(frozen=True, slots=True)

@@ -10,7 +10,7 @@ import html
 import math
 from collections.abc import Sequence
 
-from wellscope.retrieval.models import Source
+from wellscope.retrieval.models import Evidence, Source
 
 CHARS_PER_TOKEN = 3.5
 
@@ -38,17 +38,26 @@ class SourceBuilder:
         """Tokens left in the budget."""
         return self._remaining
 
-    def add(self, doc_id: str, label: str, section: str, page: int | None, text: str) -> bool:
-        """Add a source; ``False`` when it does not fit the remaining budget."""
-        if text in self._texts:
+    def add(self, evidence: Evidence) -> bool:
+        """Number and add ``evidence``; ``False`` when it does not fit the remaining budget."""
+        if evidence.text in self._texts:
             return True
-        cost = estimate_tokens(text)
+        cost = estimate_tokens(evidence.text)
         if cost > self._remaining:
             return False
         self._remaining -= cost
-        self._texts.add(text)
-        source_id = f"S{len(self._sources) + 1}"
-        self._sources.append(Source(source_id, doc_id, label, section, page, text))
+        self._texts.add(evidence.text)
+        self._sources.append(
+            Source(
+                id=f"S{len(self._sources) + 1}",
+                doc_id=evidence.doc_id,
+                label=evidence.label,
+                section=evidence.section,
+                page=evidence.page,
+                text=evidence.text,
+                period=evidence.period,
+            )
+        )
         return True
 
 
@@ -61,6 +70,7 @@ def format_sources(sources: Sequence[Source], nonce: str) -> str:
             "doc": source.label,
             "section": source.section,
             "page": "" if source.page is None else str(source.page),
+            "period": source.period,
         }
         rendered = " ".join(
             f'{name}="{html.escape(value)}"' for name, value in attributes.items() if value
