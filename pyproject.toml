@@ -65,6 +65,8 @@ select = [
   "E", "W", "F", "I", "N", "UP", "B", "S", "C4", "C90", "SIM", "RUF", "PL", "PT", "T20",
   "D100", "D101", "D104",
 ]
+# Typographic characters appear verbatim in the source reports and glossary.
+allowed-confusables = ["–", "’", "‘", "”", "“"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
