@@ -1,8 +1,9 @@
 """Deterministic answer checks: cited sources exist, and every figure comes from them.
 
 Times (``17:00``) and dates (``19/07/2026`` = ``19 Juli 2026``) must appear in a cited source or
-in the question. Other numbers pass when they appear there too, are small counts (at most 10),
-or are the sum, difference or ratio of two numbers that pass. Codes such as ``D18`` and citation
+in the question. Other numbers pass when they appear there too, are small counts (at most 10)
+or the 100 of a percentage calculation, or are the sum, difference or ratio of two numbers that
+pass. Codes such as ``D18`` and citation
 ids are ignored, and numbers match under English and Indonesian separators alike.
 """
 
@@ -126,7 +127,7 @@ def _unsupported(text: str, allowed: _Facts) -> tuple[str, ...]:
     for token, candidates in number_tokens(remainder):
         values = {abs(value) for value in candidates}
         matched = [value for value in values if round(value, EXACT_DIGITS) in allowed.numbers]
-        if matched or min(values) <= SMALL_COUNT:
+        if matched or min(values) <= SMALL_COUNT or PERCENT in values:
             supported.extend(matched or [min(values)])
         else:
             pending.append((token, values))
