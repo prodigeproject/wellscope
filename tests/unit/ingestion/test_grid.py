@@ -98,6 +98,7 @@ HEADER_SECTIONS = (
     SectionSpec(name="casing", header_rows=2, titles=("CASING",)),
     SectionSpec(name="tops", header_rows=3, titles=("TOPS",)),
     SectionSpec(name="people", header_rows=2, titles=("PEOPLE",)),
+    SectionSpec(name="shows", header_rows=2, titles=("SHOWS",)),
 )
 
 
@@ -142,6 +143,10 @@ def headed(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Section]:
         cells(canvas, 215, 230, [(20, 200, "Total people: 140")])
         cells(canvas, 230, 245, [(20, 110, "Company"), (110, 200, "# People")])
         cells(canvas, 245, 260, [(20, 110, "ACME"), (110, 200, "3")])
+        cells(canvas, 300, 315, [(20, 260, "SHOWS")])
+        cells(canvas, 315, 345, [(20, 80, "Depth"), (200, 260, "Odor")])
+        cells(canvas, 315, 330, [(80, 200, "Fluor.")])
+        cells(canvas, 330, 345, [(80, 140, "Int."), (140, 200, "Col.")])
     page = load_layout(path)[0]
     return {section.name: section for section in find_sections([page], HEADER_SECTIONS)}
 
@@ -162,3 +167,11 @@ def test_caption_rows_count_as_header_but_do_not_name_columns(headed: dict[str, 
     header = headed["people"].header()
     assert header.rows == 2
     assert header.columns == ("Company", "# People")
+
+
+def test_header_cells_spanning_both_rows_stay_columns_without_data(
+    headed: dict[str, Section],
+) -> None:
+    header = headed["shows"].header()
+    assert header.rows == 2
+    assert header.columns == ("Depth", "Fluor. Int.", "Fluor. Col.", "Odor")
