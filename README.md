@@ -375,9 +375,10 @@ The golden set used for this project has 97 questions in Indonesian and English 
 and DGOS facts, cross-report and follow-up questions, data conflicts, missing data, out-of-scope
 questions and injection attempts). It contains facts from the dataset, so it is kept out of the
 repository; [`evals/golden.example.yaml`](evals/golden.example.yaml) shows the format. Latest
-result with the default models: **96–97 of 97 correct**, no false refusals, every out-of-scope
-question refused, about 3 s per answer (p95 about 5 s). Details and the model comparison:
-[docs/EVALUATION.md](docs/EVALUATION.md).
+result with the default models: **97 of 97 correct**, no false refusals, every question that
+should be refused was, about 3 s per answer (p95 4.4 s), about USD 0.01 per question. Model
+answers can vary slightly between runs. Details, the path to this result and the model
+comparison: [docs/EVALUATION.md](docs/EVALUATION.md).
 
 ## Development
 
@@ -389,7 +390,7 @@ uv run pytest
 uv run ruff check . && uv run ruff format --check . && uv run mypy
 ```
 
-- 340+ tests (unit, integration, API, contract and architecture), 93% line coverage; tests that
+- 349 tests (unit, integration, API, contract and architecture), 93% line coverage; tests that
   need the real dataset are marked `dataset` and skip when it is absent; no test calls OpenAI.
 - `pre-commit install` enables the same checks before each commit, plus secret and dataset
   guards.
