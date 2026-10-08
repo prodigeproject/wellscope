@@ -3,34 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from docx import Document
 
+from tests.support.glossary_docx import GLOSSARY_TABLES as TABLES
+from tests.support.glossary_docx import write_docx
 from wellscope.domain.glossary import GlossaryEntry, GlossaryStatus
 from wellscope.ingestion.docx.glossary_parser import build_entries, is_glossary, read_tables
-
-# Dummy content that mirrors the structure of the real glossary (which is not committed).
-TABLES = [
-    [
-        ["Part", "Meaning"],
-        ["ALPHA", "Field name. The well targets reservoirs below the Beta field."],
-        ["-2", "Well number 2."],
-    ],
-    [
-        ["Abbreviation", "Meaning"],
-        ["A", "A"],
-        ["ABC", "Alpha Bravo Charlie – Example definition of a term."],
-        ["Avg.", "Average"],
-        ["QQ", "Unknown – Seen in a report field. (to be confirmed)"],
-        ["K1 / K2", "Phase codes – Codes in the operation table. (to be confirmed)"],
-        ["X/Y", "Cross Yield – A term whose abbreviation contains a slash."],
-        ["kgs", "Kilograms – Written 'Kgs' by mistake in the report."],
-        ["Z", "Z"],
-        [
-            "ZZ",
-            "Zone Zero / Zig Zag – Zone Zero in the report glossary; Zig Zag in the log viewer.",
-        ],
-    ],
-]
 
 
 @pytest.fixture
@@ -91,16 +68,7 @@ def test_build_entries_assigns_categories_and_unique_ids(
 
 
 def test_read_tables_and_detection_work_on_a_real_docx(tmp_path: Path) -> None:
-    path = tmp_path / "glossary.docx"
-    document = Document()
-    for rows in TABLES:
-        table = document.add_table(rows=len(rows), cols=2)
-        for row, values in zip(table.rows, rows, strict=True):
-            for cell, value in zip(row.cells, values, strict=True):
-                cell.text = value
-    document.save(str(path))
-
-    tables = read_tables(path)
+    tables = read_tables(write_docx(tmp_path / "glossary.docx", TABLES))
 
     assert is_glossary(tables)
     assert tables[1][2] == TABLES[1][2]
