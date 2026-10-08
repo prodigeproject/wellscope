@@ -25,7 +25,11 @@ RUN_MAX_KERNING = 0.5
 SAME_BASELINE = 1.0
 VERTICAL_SLACK = 0.5
 MIN_RULE_LENGTH = 2.0
+POSITION_DIGITS = 2
 TABLE_SETTINGS = {"vertical_strategy": "lines", "horizontal_strategy": "lines"}
+
+
+Position = tuple[float, float]
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,7 +73,7 @@ def _page_layout(number: int, page: Page) -> PageLayout:
     visible, stats = visible_page(page)
     cells = {Box(*cell) for table in visible.find_tables(TABLE_SETTINGS) for cell in table.cells}
     border_lines = [_rule(line) for line in page.lines if _is_vertical(line)]
-    overflow = _overflow_char_ids(visible.chars, border_lines)
+    overflow, tails = _overflow(visible.chars, border_lines)
     visible = visible.filter(lambda obj: id(obj) not in overflow).dedupe_chars(
         tolerance=DEDUPE_TOLERANCE
     )
@@ -77,7 +81,9 @@ def _page_layout(number: int, page: Page) -> PageLayout:
         x_tolerance=WORD_X_TOLERANCE, y_tolerance=WORD_Y_TOLERANCE, return_chars=True
     )
     edges = [edge for edge in page.edges if _length(edge) >= MIN_RULE_LENGTH]
-    split_words = tuple(part for word in words for part in _split_at_borders(word, border_lines))
+    split_words = tuple(
+        part for word in words for part in _split_at_borders(word, border_lines, tails)
+    )
     cell_words, loose_words = _assign_words(split_words, cells)
     return PageLayout(
         number=number,
@@ -109,24 +115,44 @@ def _assign_words(
     return {cell: tuple(items) for cell, items in owned.items()}, tuple(loose)
 
 
-def _overflow_char_ids(chars: Sequence[dict[str, Any]], borders: Sequence[Rule]) -> set[int]:
-    """Characters of a text run that spill past a cell border into a neighbour's text.
+def _overflow(
+    chars: Sequence[dict[str, Any]], borders: Sequence[Rule]
+) -> tuple[set[int], dict[Position, str]]:
+    """Characters of text runs that spill past a cell border into a neighbour's text.
 
-    Reports clip cell content at inner borders, so the spilled glyphs are invisible on the page,
-    yet extractors read them and glue them to the next cell's value (``…REAMER1``). A border
-    only clips when other text sits beyond it on the same baseline; text running past an outer
-    frame stays visible and is kept.
+    Reports clip cell content at inner borders (the page shows ``Fire and Aba``), yet the
+    spilled glyphs are in the file and extractors glue them to the next cell (``…REAMER1``,
+    ``AbandLoanst``). The spilled glyphs are removed from the page geometry and their text is
+    returned keyed by the position of the run's last kept character, so the value keeps its full
+    text in its own cell. A border only clips when other text sits beyond it on the same
+    baseline; text running past an outer frame stays visible and is kept.
     """
     dropped: set[int] = set()
+    tails: dict[Position, str] = {}
     run: list[dict[str, Any]] = []
     for char in [*chars, None]:
         if char is not None and run and _continues(run[-1], char):
             run.append(char)
             continue
-        if run:
-            dropped.update(_clipped(run, borders, chars))
+        clipped = _clipped(run, borders, chars) if run else set()
+        kept = [item for item in run if id(item) not in clipped]
+        if clipped and kept:
+            spilled = [item for item in run if id(item) in clipped]
+            tails[_position(kept[-1])] = "".join(str(item["text"]) for item in spilled)
+        dropped |= clipped
         run = [char] if char is not None else []
-    return dropped
+    return dropped, tails
+
+
+def _with_tail(word: dict[str, Any], tails: dict[Position, str]) -> dict[str, Any]:
+    """Re-attach clipped text to the word it continues (its geometry stays inside the cell)."""
+    chars = word.get("chars") or []
+    tail = tails.get(_position(chars[-1])) if chars else None
+    return {**word, "text": f"{word['text']}{tail}"} if tail else word
+
+
+def _position(char: dict[str, Any]) -> Position:
+    return round(float(char["x0"]), POSITION_DIGITS), round(float(char["top"]), POSITION_DIGITS)
 
 
 def _continues(previous: dict[str, Any], char: dict[str, Any]) -> bool:
@@ -159,8 +185,13 @@ def _clipped(
     return set()
 
 
-def _split_at_borders(word: dict[str, Any], borders: Sequence[Rule]) -> list[Word]:
-    """Split a word whose characters sit on both sides of a cell border into one word per side."""
+def _split_at_borders(
+    word: dict[str, Any], borders: Sequence[Rule], tails: dict[Position, str]
+) -> list[Word]:
+    """Split a word whose characters sit on both sides of a cell border into one word per side.
+
+    Each part gets back any text that was clipped at the border after its last character.
+    """
     middle = (float(word["top"]) + float(word["bottom"])) / 2
     cuts = sorted(
         rule.x0
@@ -171,11 +202,11 @@ def _split_at_borders(word: dict[str, Any], borders: Sequence[Rule]) -> list[Wor
     chars = word.get("chars") or []
     cuts = [cut for cut in cuts if _separates(chars, cut)]
     if not cuts or not chars:
-        return [_word(word)]
+        return [_word(_with_tail(word, tails))]
     groups: list[list[dict[str, Any]]] = [[] for _ in range(len(cuts) + 1)]
     for char in chars:
         groups[bisect_left(cuts, _centre_x(char))].append(char)
-    return [_word(_merge_chars(group)) for group in groups if group]
+    return [_word(_with_tail(_merge_chars(group), tails)) for group in groups if group]
 
 
 def _separates(chars: Sequence[dict[str, Any]], cut: float) -> bool:
@@ -189,6 +220,7 @@ def _separates(chars: Sequence[dict[str, Any]], cut: float) -> bool:
 
 def _merge_chars(chars: Sequence[dict[str, Any]]) -> dict[str, Any]:
     return {
+        "chars": list(chars),
         "text": "".join(str(char["text"]) for char in chars),
         "x0": min(float(char["x0"]) for char in chars),
         "x1": max(float(char["x1"]) for char in chars),
