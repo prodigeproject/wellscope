@@ -32,6 +32,7 @@ def test_health_reports_the_index_and_model_state(client: TestClient) -> None:
     assert body["glossary_entries"] == 1
     assert body["model_configured"] is True
     assert body["index_version"] == "v1"
+    assert body["max_question_chars"] == 1000
 
 
 def test_health_without_an_index_asks_for_ingest(tmp_path: Path) -> None:
@@ -113,7 +114,7 @@ def test_chat_validates_the_request(client: TestClient) -> None:
 
 
 def test_oversized_bodies_are_rejected_before_parsing(client: TestClient) -> None:
-    response = client.post("/api/chat", content=b"{" + b" " * 20_000 + b"}")
+    response = client.post("/api/chat", content=b"{" + b" " * 40_000 + b"}")
     assert response.status_code == 413
     assert response.json()["error"]["code"] == "payload_too_large"
 
@@ -175,3 +176,11 @@ def test_unexpected_errors_keep_security_headers_and_the_request_id(tmp_path: Pa
     assert "default-src 'self'" in response.headers["content-security-policy"]
     assert response.headers["cache-control"] == "no-store"
     assert "malformed" not in response.text
+
+
+def test_earlier_questions_may_be_as_long_as_the_configured_limit(tmp_path: Path) -> None:
+    settings = make_settings(tmp_path, max_question_chars=2000)
+    history = [{"question": "q" * 2000, "answer": "a"}]
+    with make_client(settings, SearchIndex(settings.database_path)) as client:
+        response = client.post("/api/chat", json={"question": "x" * 2000, "history": history})
+    assert response.status_code == 200
