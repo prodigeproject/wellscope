@@ -2,6 +2,8 @@
 
 The question-answering pipeline is synchronous; it runs in a worker thread (bounded by a
 semaphore) and reports its stages back to the event loop, which streams them to the browser.
+When the browser goes away, the worker stops at its next stage boundary and keeps its slot
+until it has actually stopped, so the concurrency limit always holds.
 """
 
 from __future__ import annotations
@@ -9,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import threading
 from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass
 from time import perf_counter
@@ -16,7 +19,7 @@ from typing import Any
 
 from wellscope.api.schemas import AnswerEvent
 from wellscope.qa.analyzer import Turn
-from wellscope.qa.service import QAService, Stage
+from wellscope.qa.service import QAService, Stage, StageCancelled
 
 logger = logging.getLogger(__name__)
 KEEPALIVE_S = 15.0
@@ -24,6 +27,8 @@ MILLISECONDS = 1000
 SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
 Event = tuple[str, dict[str, Any]]
 Events = asyncio.Queue[Event | None]
+# Producers outlive a closed stream until their worker stops; keep them referenced meanwhile.
+_RUNNING: set[asyncio.Task[None]] = set()
 
 
 @dataclass(frozen=True)
@@ -45,7 +50,10 @@ async def answer_events(
 ) -> AsyncIterator[str]:
     """Stream the stages of answering ``question``, then the answer (or an error)."""
     queue: Events = asyncio.Queue()
-    task = asyncio.create_task(_produce(qa, question, slots, queue))
+    cancelled = threading.Event()
+    task = asyncio.create_task(_produce(qa, question, slots, queue, cancelled))
+    _RUNNING.add(task)
+    task.add_done_callback(_RUNNING.discard)
     try:
         while True:
             try:
@@ -57,17 +65,22 @@ async def answer_events(
                 return
             yield format_event(*item)
     finally:
-        if not task.done():
-            task.cancel()
+        cancelled.set()
 
 
 async def _produce(
-    qa: QAService, question: Question, slots: asyncio.Semaphore, queue: Events
+    qa: QAService,
+    question: Question,
+    slots: asyncio.Semaphore,
+    queue: Events,
+    cancelled: threading.Event,
 ) -> None:
     loop = asyncio.get_running_loop()
     started = perf_counter()
 
     def on_stage(stage: Stage) -> None:
+        if cancelled.is_set():
+            raise StageCancelled
         elapsed = int((perf_counter() - started) * MILLISECONDS)
         loop.call_soon_threadsafe(queue.put_nowait, ("stage", {"stage": stage, "t_ms": elapsed}))
 
@@ -80,6 +93,8 @@ async def _produce(
         logger.info("question answered", extra=outcome | usage)
         payload = event.model_dump(mode="json")
         await queue.put(("answer", payload))
+    except StageCancelled:
+        logger.info("answering stopped: the client went away")
     except Exception:  # last-resort boundary: the stream must end with an event
         logger.exception("answering failed")
         error = {"code": "internal_error", "message": "Unexpected error."}

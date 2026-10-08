@@ -37,6 +37,10 @@ UNVERIFIED_NOTE = {
 }
 
 
+class StageCancelled(Exception):  # noqa: N818 - a control signal, not an error
+    """Raised by a stage callback to stop answering, for example when the client went away."""
+
+
 @dataclass(frozen=True, slots=True)
 class Citation:
     """A source the answer cites, with enough context to show it."""
