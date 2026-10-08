@@ -1,0 +1,109 @@
+[project]
+name = "wellscope"
+version = "0.1.0"
+description = "Grounded Q&A assistant for daily drilling and geological well reports."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Prodige Project" }]
+requires-python = ">=3.11"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Operating System :: OS Independent",
+]
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn>=0.30",
+  "pydantic>=2.8",
+  "pydantic-settings>=2.4",
+  "typer>=0.12",
+  "rich>=13.7",
+  "pdfplumber>=0.11.4",
+  "python-docx>=1.1",
+  "pyyaml>=6.0",
+  "openai>=2.0",
+  "numpy>=1.26",
+  "rapidfuzz>=3.9",
+  "markdown-it-py>=3.0",
+  "nh3>=0.2.17",
+]
+
+[project.scripts]
+wellscope = "wellscope.cli:main"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "pytest-cov>=5.0",
+  "hypothesis>=6.100",
+  "reportlab>=4.2",
+  "httpx>=0.27",
+  "mypy>=1.11",
+  "ruff==0.16.10",
+  "pre-commit>=3.8",
+  "pip-audit>=2.7",
+  "types-PyYAML>=6.0",
+]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/wellscope"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W", "F", "I", "N", "UP", "B", "S", "C4", "C90", "SIM", "RUF", "PL", "PT", "T20",
+  "D100", "D101", "D104",
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-args = 6
+max-branches = 12
+max-statements = 30
+max-returns = 6
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["wellscope"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "PLR2004", "D100", "D101", "D104", "PLR0913"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src"]
+plugins = ["pydantic.mypy"]
+warn_unreachable = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+  "dataset: needs the real dataset in data/raw (skipped when absent)",
+  "online: calls the OpenAI API (skipped unless WELLSCOPE_ONLINE_TESTS=1)",
+]
+
+[tool.coverage.run]
+source = ["wellscope"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "@overload"]
